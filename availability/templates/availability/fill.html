@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}填寫可上班意願{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">填寫可上班意願</h2>
+
+<form method="POST" class="card p-4 shadow-sm">
+    {% csrf_token %}
+
+    <p>員工：<strong>{{ employee.user.get_full_name }}</strong></p>
+    <hr>
+
+    {% for d in dates %}
+        {% with key=d|date:"Y-m-d" %}
+        <div class="mb-4 p-3 border rounded">
+            <h5>{{ d|date:"m/d (D)" }}</h5>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="avail-{{ key }}" value="yes" id="yes-{{ key }}">
+                <label class="form-check-label" for="yes-{{ key }}">可以上班</label>
+            </div>
+
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="avail-{{ key }}" value="no" id="no-{{ key }}" checked>
+                <label class="form-check-label" for="no-{{ key }}">不行</label>
+            </div>
+
+            <div id="time-section-{{ key }}" class="row g-2 mt-2" style="display:none;">
+                <div class="col-md-4">
+                    <label>開始時間</label>
+                    <input type="time" name="start-{{ key }}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label>結束時間</label>
+                    <input type="time" name="end-{{ key }}" class="form-control">
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary">提交</button>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    {% for d in dates %}
+        {% with key=d|date:"Y-m-d" %}
+            const yesBtn{{ forloop.counter }} = document.getElementById("yes-{{ key }}");
+            const noBtn{{ forloop.counter }}  = document.getElementById("no-{{ key }}");
+            const timeDiv{{ forloop.counter }} = document.getElementById("time-section-{{ key }}");
+
+            yesBtn{{ forloop.counter }}.addEventListener("change", () => timeDiv{{ forloop.counter }}.style.display = "flex");
+            noBtn{{ forloop.counter }}.addEventListener("change", () => timeDiv{{ forloop.counter }}.style.display = "none");
+        {% endwith %}
+    {% endfor %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}排班 ERP 系統{% endblock %}</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
+    <style>
+        /* === FullCalendar 高級 UI 美化 === */
+
+        /* 星期欄（Mon Tue Wed）置中，字體加粗 */
+        .fc-col-header-cell-cushion {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* 時間軸（8 AM / 9 AM）變更精緻 */
+        .fc-timegrid-slot-label {
+            font-size: 0.85rem;
+            color: #444;
+        }
+
+        /* 事件外觀美化 */
+        .fc-timegrid-event {
+            border-radius: 6px !important;
+            border: none !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            padding: 2px 4px;
+        }
+
+        /* 事件內文字可換行，不會撐爆高度 */
+        .fc-event-main {
+            white-space: normal !important;
+            line-height: 1.2rem;
+            font-size: 0.85rem;
+        }
+
+        /* 滑鼠移入事件高亮 */
+        .fc-timegrid-event:hover {
+            transform: scale(1.02);
+            transition: 0.1s;
+            filter: brightness(1.05);
+        }
+
+        /* 整體背景美化 */
+        .fc .fc-scrollgrid {
+            border-radius: 8px;
+        }
+
+        /* 今日高亮背景 */
+        .fc-day-today {
+            background-color: #fff8e1 !important;
+        }
+
+        /* 去除 event 的藍色 outline */
+        .fc-event:focus {
+            outline: none !important;
+        }
+
+        .fc-timegrid-event,
+        .fc-daygrid-event {
+            border-radius: 8px !important;
+            padding: 4px 6px !important;
+            border: none !important;
+        }
+
+        .fc-timegrid-event:hover,
+        .fc-daygrid-event:hover {
+            filter: brightness(1.12);
+            transform: scale(1.02);
+            transition: 0.1s ease;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">飲料店排班 ERP</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav"
+                aria-expanded="false" aria-label="切換導航">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            {% if user.is_authenticated %}
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'availability:home' %}">可上班意願</a>
+                </li>
+                {% if user.userprofile.is_manager %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'scheduling:list' %}">總班表</a>
+                </li>
+                {% endif %}
+            </ul>
+            <span class="navbar-text me-3">
+                Hi, {{ user.get_full_name|default:user.username }}
+            </span>
+            <a class="btn btn-outline-light btn-sm" href="{% url 'users:logout' %}">登出</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css"/>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

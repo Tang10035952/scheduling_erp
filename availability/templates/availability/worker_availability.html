@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}填寫可上班意願{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-5 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">✅ 提交可上班意願</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="availability-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">可上班日期</label>
+                        {{ form.date }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">開始時間</label>
+                        {{ form.start_time }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">結束時間</label>
+                        {{ form.end_time }}
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">送出意願</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">📅 已填寫的可上班日期與時段</h5>
+            </div>
+            <div class="card-body">
+                {% if availabilities %}
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>時間</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for av in availabilities %}
+                        <tr>
+                            <td>{{ av.date }}</td>
+                            <td>{{ av.start_time|time:"H:i" }} - {{ av.end_time|time:"H:i" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'availability:delete' av.id %}"
+                                   class="btn btn-outline-danger btn-sm"
+                                   onclick="return confirm('確定要刪除這筆意願嗎？');">
+                                    刪除
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">目前尚未填寫任何可上班意願。</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

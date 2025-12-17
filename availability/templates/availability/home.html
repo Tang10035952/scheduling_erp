@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}可上班意願{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">可上班意願（員工專區）</h2>
+
+<div class="card p-4 shadow-sm">
+
+    <h5 class="mb-3">👤 員工：{{ employee.user.get_full_name }}</h5>
+
+    <p class="text-muted">請選擇操作：</p>
+
+    <div class="d-grid gap-3">
+
+        <!-- 前往填寫可上班意願 -->
+        <a href="{% url 'availability:fill' %}" class="btn btn-primary btn-lg">
+            填寫本週可上班意願
+        </a>
+
+        <!-- 查看自己的可上班行事曆 -->
+        <a href="{% url 'availability:calendar_self' %}" class="btn btn-outline-secondary btn-lg">
+            查看我的可上班行事曆
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

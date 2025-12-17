@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ employee.user.get_full_name|default:employee.user.username }} 的可上班行事曆{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">
+    📆 {{ employee.user.get_full_name|default:employee.user.username }} 的可上班行事曆
+</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div id="employee-calendar"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('employee-calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridWeek',
+        locale: 'zh-tw',
+        eventContent: function(arg) {
+            const title = arg.event.title;
+            const start = arg.event.start.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const end = arg.event.end.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            // 判斷背景色深淺（深底 → 白字，亮底 → 深字）
+            const bg = arg.backgroundColor || arg.event.backgroundColor;
+            const isLight = bg && (
+                bg.includes("F") || bg.includes("f") || bg.startsWith("#F") || bg.startsWith("#f")
+            );
+
+            const textColor = isLight ? "#333" : "white";
+            const subColor = isLight ? "#555" : "#f0f0f0";
+
+            return {
+                html: `
+                    <div style="font-weight:700;font-size:14px;color:${textColor};">
+                        ${start} - ${end}
+                    </div>
+                `
+            };
+        },
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek,dayGridDay'
+        },
+        events: "{% url 'availability:calendar_data' employee.id %}",
+        height: 650
+    });
+    calendar.render();
+});
+</script>
+{% endblock %}

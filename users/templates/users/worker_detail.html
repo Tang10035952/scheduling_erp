@@ -55,6 +55,14 @@
         </div>
         {% endif %}
       </div>
+      {% if not is_create %}
+      <div class="row g-3 mt-1">
+        <div class="col-md-6 d-flex gap-2">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="resetPasswordBtn">設定臨時密碼</button>
+          <small class="text-muted align-self-center">產生 6 位數臨時密碼</small>
+        </div>
+      </div>
+      {% endif %}
       {% if is_create %}
       <div class="row g-3 mt-0">
         <div class="col-md-6">
@@ -339,6 +347,40 @@
     </div>
   </div>
 </div>
+<div class="modal fade" id="tempPasswordModal" tabindex="-1" aria-labelledby="tempPasswordLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tempPasswordLabel">臨時密碼</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2 text-muted">請轉告員工使用此臨時密碼登入並立即重設。</div>
+        <div class="fs-4 fw-bold" id="tempPasswordValue">------</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="confirmTempPasswordModal" tabindex="-1" aria-labelledby="confirmTempPasswordLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmTempPasswordLabel">設定臨時密碼</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        這會重設為 6 位數臨時密碼，是否繼續？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="confirmResetPasswordBtn">確認</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
   const uploadSection = document.querySelector("[data-upload-form]");
   const saveBtn = document.getElementById("saveWorkerBtn");
@@ -349,6 +391,17 @@
   const downloadBtn = document.getElementById("documentDownloadBtn");
   const previewModal = previewModalEl && window.bootstrap
     ? new window.bootstrap.Modal(previewModalEl)
+    : null;
+  const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+  const tempPasswordModalEl = document.getElementById("tempPasswordModal");
+  const tempPasswordValue = document.getElementById("tempPasswordValue");
+  const tempPasswordModal = tempPasswordModalEl && window.bootstrap
+    ? new window.bootstrap.Modal(tempPasswordModalEl)
+    : null;
+  const confirmTempPasswordModalEl = document.getElementById("confirmTempPasswordModal");
+  const confirmResetPasswordBtn = document.getElementById("confirmResetPasswordBtn");
+  const confirmTempPasswordModal = confirmTempPasswordModalEl && window.bootstrap
+    ? new window.bootstrap.Modal(confirmTempPasswordModalEl)
     : null;
 
   const getCookie = (name) => {
@@ -536,6 +589,51 @@
     formData.append("category", category);
     xhr.send(formData);
   });
+
+  if (resetPasswordBtn) {
+    resetPasswordBtn.addEventListener("click", () => {
+      if (!profileId) return;
+      if (confirmTempPasswordModal) {
+        confirmTempPasswordModal.show();
+      }
+    });
+  }
+
+  if (confirmResetPasswordBtn) {
+    confirmResetPasswordBtn.addEventListener("click", () => {
+      if (!profileId) return;
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `/users/create-worker/${profileId}/reset-password/`);
+      xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
+      xhr.addEventListener("load", () => {
+        let data = {};
+        try {
+          data = JSON.parse(xhr.responseText || "{}");
+        } catch (err) {
+          data = {};
+        }
+        if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
+          if (tempPasswordValue) {
+            tempPasswordValue.textContent = data.temp_password || "------";
+          }
+          if (confirmTempPasswordModal) {
+            confirmTempPasswordModal.hide();
+          }
+          if (tempPasswordModal) {
+            tempPasswordModal.show();
+          } else {
+            window.alert(`臨時密碼：${data.temp_password || ""}`);
+          }
+        } else {
+          window.alert(data.error || "重設失敗，請稍後再試。");
+        }
+      });
+      xhr.addEventListener("error", () => {
+        window.alert("重設失敗，請稍後再試。");
+      });
+      xhr.send();
+    });
+  }
 
   const educationSelect = document.getElementById("id_education");
   const educationOtherInput = document.getElementById("id_education_other");

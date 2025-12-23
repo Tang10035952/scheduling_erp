@@ -1,8 +1,11 @@
 import os
 import re
 from django import forms
+from django.contrib.auth import authenticate
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from .models import UserProfile
 
@@ -34,6 +37,45 @@ def _is_allowed_upload(file_obj, allow_pdf=False):
     if allow_pdf and (file_obj.content_type or "").lower() == "application/pdf":
         return True
     return False
+
+
+class TempPasswordResetForm(forms.Form):
+    username = forms.CharField(label="帳號", max_length=150)
+    temp_password = forms.CharField(label="臨時密碼", widget=forms.PasswordInput)
+    new_password1 = forms.CharField(label="新密碼", widget=forms.PasswordInput)
+    new_password2 = forms.CharField(label="再次確認新密碼", widget=forms.PasswordInput)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = None
+
+    def clean(self):
+        cleaned = super().clean()
+        username = (cleaned.get("username") or "").strip()
+        temp_password = (cleaned.get("temp_password") or "").strip()
+        new_password1 = (cleaned.get("new_password1") or "").strip()
+        new_password2 = (cleaned.get("new_password2") or "").strip()
+
+        if username and temp_password:
+            user = authenticate(username=username, password=temp_password)
+            if not user:
+                raise forms.ValidationError("帳號或臨時密碼錯誤。")
+            self.user = user
+
+        if new_password1 and new_password2 and new_password1 != new_password2:
+            self.add_error("new_password2", "兩次輸入的密碼不一致。")
+
+        if new_password1:
+            try:
+                validate_password(new_password1, user=self.user)
+            except ValidationError as exc:
+                self.add_error("new_password1", exc)
+
+        cleaned["username"] = username
+        cleaned["temp_password"] = temp_password
+        cleaned["new_password1"] = new_password1
+        cleaned["new_password2"] = new_password2
+        return cleaned
 
 
 class WorkerCreationForm(UserCreationForm):

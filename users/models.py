@@ -25,6 +25,7 @@ class UserProfile(models.Model):
     work_experience = models.TextField("工作經歷", blank=True)
     role = models.CharField(max_length=10, choices=USER_ROLES, default='worker')
     sort_order = models.PositiveIntegerField(default=0)
+    must_reset_password = models.BooleanField(default=False)
     primary_store = models.ForeignKey(
         "scheduling.Store",
         on_delete=models.SET_NULL,

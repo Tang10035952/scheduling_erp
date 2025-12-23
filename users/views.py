@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.core.files.storage import default_storage
@@ -9,8 +9,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 import json
 import os
+import secrets
+import string
 
-from .forms import WorkerCreationForm, ManagerWorkerCreateForm, ManagerWorkerUpdateForm
+from .forms import (
+    WorkerCreationForm,
+    ManagerWorkerCreateForm,
+    ManagerWorkerUpdateForm,
+    TempPasswordResetForm,
+)
 from .models import UserProfile, WorkerDocument
 from scheduling.models import SchedulingWindow
 
@@ -34,6 +41,10 @@ def post_login(request):
     except UserProfile.DoesNotExist:
         return redirect("users:login")
 
+    if profile.must_reset_password:
+        messages.info(request, "請先使用臨時密碼重設密碼。")
+        return redirect("users:password_change")
+
     if profile.is_manager():
         return redirect("scheduling:timeline")
 
@@ -50,6 +61,48 @@ class RoleLoginView(LoginView):
 
     def get_success_url(self):
         return reverse_lazy("users:post_login")
+
+
+class ForcedPasswordChangeView(PasswordChangeView):
+    template_name = "users/password_change.html"
+    success_url = reverse_lazy("users:post_login")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        try:
+            profile = self.request.user.userprofile
+        except UserProfile.DoesNotExist:
+            profile = None
+        if profile and profile.must_reset_password:
+            profile.must_reset_password = False
+            profile.save(update_fields=["must_reset_password"])
+        messages.success(self.request, "密碼已更新。")
+        return response
+
+
+def reset_password_with_temp(request):
+    if request.user.is_authenticated:
+        return redirect("users:password_change")
+
+    if request.method == "POST":
+        form = TempPasswordResetForm(request.POST)
+        if form.is_valid():
+            user = form.user
+            user.set_password(form.cleaned_data["new_password1"])
+            user.save(update_fields=["password"])
+            try:
+                profile = user.userprofile
+            except UserProfile.DoesNotExist:
+                profile = None
+            if profile and profile.must_reset_password:
+                profile.must_reset_password = False
+                profile.save(update_fields=["must_reset_password"])
+            messages.success(request, "密碼已更新，請使用新密碼登入。")
+            return redirect("users:login")
+    else:
+        form = TempPasswordResetForm()
+
+    return render(request, "users/password_reset_temp.html", {"form": form})
 
 
 def register_worker(request):
@@ -403,6 +456,22 @@ def delete_worker_document(request, profile_id):
         document.file.delete(save=False)
     document.delete()
     return JsonResponse({"ok": True})
+
+
+@login_required
+@user_passes_test(is_manager)
+@require_POST
+def reset_worker_password(request, profile_id):
+    profile = UserProfile.objects.filter(id=profile_id, role="worker").select_related("user").first()
+    if not profile:
+        return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    temp_password = "".join(secrets.choice(string.digits) for _ in range(6))
+    profile.user.set_password(temp_password)
+    profile.user.save(update_fields=["password"])
+    profile.must_reset_password = True
+    profile.save(update_fields=["must_reset_password"])
+    return JsonResponse({"ok": True, "temp_password": temp_password})
 
 
 def _document_if_exists(doc):

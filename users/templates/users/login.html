@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load form_filters %}
-{% block title %}登入 - 排班 ERP{% endblock %}
+{% block title %}登入 - 餐飲排班 ERP 系統{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center mt-5">
@@ -10,6 +10,13 @@
                 <h5 class="mb-0">員工 / 店長登入</h5>
             </div>
             <div class="card-body">
+                {% if messages %}
+                  {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}">
+                      {{ message }}
+                    </div>
+                  {% endfor %}
+                {% endif %}
                 {% if form.errors %}
                 <div class="alert alert-danger">
                     帳號或密碼錯誤，請再試一次。
@@ -23,12 +30,104 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">密碼</label>
-                        {{ form.password|add_class:"form-control" }}
+                        <div class="password-field">
+                          {{ form.password|add_class:"form-control" }}
+                          <button type="button" class="password-toggle" id="toggleLoginPassword" aria-pressed="false" aria-label="顯示密碼">
+                            <span class="icon-eye">
+                              <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            </span>
+                            <span class="icon-eye-slash d-none">
+                              <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
+                            </span>
+                          </button>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="rememberLogin">
+                        <label class="form-check-label" for="rememberLogin">記住帳密</label>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">登入</button>
                 </form>
+                {% if allow_worker_register %}
+                  <a class="btn btn-outline-primary w-100 mt-3" href="{% url 'users:register' %}">註冊</a>
+                {% else %}
+                  <button type="button" class="btn btn-outline-secondary w-100 mt-3" disabled>註冊</button>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_css %}
+<style>
+  .password-field {
+    position: relative;
+  }
+  .password-field .form-control {
+    padding-right: 2.5rem;
+  }
+  .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: #6b7280;
+  }
+  .password-toggle:focus {
+    outline: none;
+  }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+  const loginPassword = document.getElementById("id_password");
+  const loginUsername = document.getElementById("id_username");
+  const toggleLoginPassword = document.getElementById("toggleLoginPassword");
+  const rememberLogin = document.getElementById("rememberLogin");
+  const loginForm = document.querySelector("form");
+  const rememberKey = "rememberedLogin";
+
+  if (toggleLoginPassword && loginPassword) {
+    toggleLoginPassword.addEventListener("click", () => {
+      const showing = loginPassword.type === "text";
+      loginPassword.type = showing ? "password" : "text";
+      toggleLoginPassword.setAttribute("aria-pressed", String(!showing));
+      const eye = toggleLoginPassword.querySelector(".icon-eye");
+      const slash = toggleLoginPassword.querySelector(".icon-eye-slash");
+      if (eye && slash) {
+        eye.classList.toggle("d-none", !showing);
+        slash.classList.toggle("d-none", showing);
+      }
+    });
+  }
+
+  if (rememberLogin && loginUsername && loginPassword) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(rememberKey) || "null");
+      if (stored && stored.username) {
+        loginUsername.value = stored.username;
+        loginPassword.value = stored.password || "";
+        rememberLogin.checked = true;
+      }
+    } catch (err) {
+      localStorage.removeItem(rememberKey);
+    }
+
+    if (loginForm) {
+      loginForm.addEventListener("submit", () => {
+        if (rememberLogin.checked) {
+          localStorage.setItem(
+            rememberKey,
+            JSON.stringify({ username: loginUsername.value, password: loginPassword.value })
+          );
+        } else {
+          localStorage.removeItem(rememberKey);
+        }
+      });
+    }
+  }
+</script>
 {% endblock %}

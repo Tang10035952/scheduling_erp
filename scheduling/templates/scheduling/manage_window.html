@@ -65,6 +65,15 @@
                 </div>
                 <small class="text-muted d-block">未勾選時，員工僅能查看，不可新增/修改班表。</small>
               </div>
+              <div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="allowWorkerRegister" name="allow_worker_register" {% if allow_worker_register %}checked{% endif %}>
+                  <label class="form-check-label" for="allowWorkerRegister">
+                    開放員工註冊
+                  </label>
+                </div>
+                <small class="text-muted d-block">未勾選時，登入頁的註冊按鈕會停用。</small>
+              </div>
             </div>
             <div class="d-flex justify-content-end mt-3">
               <button type="submit" class="btn btn-primary">設定</button>

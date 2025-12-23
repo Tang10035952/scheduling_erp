@@ -677,6 +677,7 @@
         <div class="mt-3">
           <label>店別</label>
           <select id="m-store" class="form-select">
+            <option value="">未排定</option>
             {% for store in stores %}
               <option value="{{ store.id }}">{{ store.name }}</option>
             {% endfor %}
@@ -708,6 +709,7 @@
           <div class="mt-3">
             <label>新增段店別</label>
             <select id="m-split-store" class="form-select">
+              <option value="">未排定</option>
               {% for store in stores %}
                 <option value="{{ store.id }}">{{ store.name }}</option>
               {% endfor %}
@@ -888,6 +890,14 @@ function timeToMinutes(timeStr) {
     return (h * 60) + m;
 }
 
+function addHoursToTime(timeStr, hoursToAdd = 1) {
+    const total = timeToMinutes(timeStr) + (hoursToAdd * 60);
+    const minutes = ((total % (24 * 60)) + (24 * 60)) % (24 * 60);
+    const h = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const m = String(minutes % 60).padStart(2, "0");
+    return `${h}:${m}`;
+}
+
 function setTimeSelects(prefix, timeStr) {
     const [hour, minute] = timeStr.split(":");
     const hourEl = document.getElementById(`${prefix}-hour`);
@@ -922,7 +932,7 @@ function getStoreValue() {
         return null;
     }
     const storeEl = document.getElementById("m-store");
-    if (!storeEl || !storeEl.value) {
+    if (!storeEl) {
         showAlert("請選擇店別。");
         return null;
     }
@@ -966,10 +976,15 @@ function openShiftModal(el) {
         noteEl.value = el.dataset.note || "";
     }
     const storeEl = document.getElementById("m-store");
-    if (storeEl && el.dataset.storeId) {
-        storeEl.value = el.dataset.storeId;
+    if (storeEl) {
+        storeEl.value = el.dataset.storeId || "";
+    }
+    const splitStoreEl = document.getElementById("m-split-store");
+    if (splitStoreEl) {
+        splitStoreEl.value = el.dataset.storeId || "";
     }
     setTimeSelects("m-split-start", el.dataset.end);
+    setTimeSelects("m-split-end", addHoursToTime(el.dataset.end, 1));
     if (splitToggle && splitSection) {
         splitToggle.checked = false;
         splitSection.classList.add("d-none");
@@ -994,7 +1009,12 @@ function openCreateModal(payload) {
     }
     const storeEl = document.getElementById("m-store");
     if (storeEl && storeEl.options.length) {
-        storeEl.value = storeEl.options[0].value;
+        const firstReal = Array.from(storeEl.options).find((opt) => opt.value);
+        storeEl.value = firstReal ? firstReal.value : "";
+    }
+    const splitStoreEl = document.getElementById("m-split-store");
+    if (splitStoreEl) {
+        splitStoreEl.value = storeEl ? storeEl.value : "";
     }
     if (canManageStore && splitToggle && splitSection) {
         splitToggle.checked = false;
@@ -1095,13 +1115,14 @@ document.getElementById("updateShiftBtn").addEventListener("click", function() {
     if (canManageStore) {
         const storeId = getStoreValue();
         if (!storeId) {
-            return;
+            payload.store_id = null;
+        } else {
+            payload.store_id = storeId;
         }
         const splitValues = getSplitValues();
         if (splitToggle && splitToggle.checked && !splitValues) {
             return;
         }
-        payload.store_id = storeId;
         payload.split_start = splitValues ? splitValues.startValue : null;
         payload.split_end = splitValues ? splitValues.endValue : null;
         payload.split_store_id = splitValues ? splitValues.storeId : null;
@@ -1146,9 +1167,10 @@ document.getElementById("createShiftBtn").addEventListener("click", function() {
     if (canManageStore) {
         const storeId = getStoreValue();
         if (!storeId) {
-            return;
+            payload.store_id = null;
+        } else {
+            payload.store_id = storeId;
         }
-        payload.store_id = storeId;
         const noteEl = document.getElementById("m-note");
         if (noteEl) {
             payload.note = noteEl.value.trim();

@@ -10,6 +10,7 @@ import json
 
 from .forms import WorkerCreationForm
 from .models import UserProfile
+from scheduling.models import SchedulingWindow
 
 
 def is_manager(user):
@@ -17,6 +18,11 @@ def is_manager(user):
         return user.is_authenticated and user.userprofile.is_manager()
     except UserProfile.DoesNotExist:
         return False
+
+
+def get_allow_worker_register():
+    latest = SchedulingWindow.objects.order_by("-created_at").first()
+    return latest.allow_worker_register if latest else False
 
 
 @login_required
@@ -35,8 +41,43 @@ def post_login(request):
 class RoleLoginView(LoginView):
     redirect_authenticated_user = True
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["allow_worker_register"] = get_allow_worker_register()
+        return context
+
     def get_success_url(self):
         return reverse_lazy("users:post_login")
+
+
+def register_worker(request):
+    if request.user.is_authenticated:
+        return redirect("users:post_login")
+
+    allow_worker_register = get_allow_worker_register()
+    if request.method == "POST":
+        if not allow_worker_register:
+            messages.error(request, "目前未開放員工註冊。")
+            return redirect("users:login")
+        form = WorkerCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            UserProfile.objects.create(
+                user=user,
+                role="worker",
+                name=form.cleaned_data.get("name", ""),
+                sort_order=(UserProfile.objects.filter(role="worker").count() + 1),
+            )
+            messages.success(request, "註冊成功，請使用帳號登入。")
+            return redirect("users:login")
+    else:
+        form = WorkerCreationForm()
+
+    return render(
+        request,
+        "users/register.html",
+        {"form": form, "allow_worker_register": allow_worker_register},
+    )
 
 
 @login_required

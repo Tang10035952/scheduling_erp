@@ -89,7 +89,10 @@
                   <form method="post" action="{% url 'users:delete_worker' %}" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="profile_id" value="{{ worker.id }}">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">刪除</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm delete-worker"
+                            data-worker-name="{{ worker.name|default:worker.user.username }}">
+                      刪除
+                    </button>
                   </form>
                 </td>
               </tr>
@@ -129,6 +132,28 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="workerDeleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'users:delete_worker' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">刪除員工</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="profile_id" id="deleteWorkerId">
+          <p class="mb-0">確定要刪除 <strong id="deleteWorkerName"></strong> 嗎？</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-danger">刪除</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -142,6 +167,20 @@
       idInput.value = id;
       nameInput.value = name;
       bootstrap.Modal.getOrCreateInstance(document.getElementById("workerEditModal")).show();
+    });
+  });
+
+  document.querySelectorAll(".delete-worker").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest("tr");
+      const id = row ? row.dataset.workerId : "";
+      const name = btn.dataset.workerName || "";
+      const idInput = document.getElementById("deleteWorkerId");
+      const nameText = document.getElementById("deleteWorkerName");
+      if (!idInput || !nameText) return;
+      idInput.value = id;
+      nameText.textContent = name;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("workerDeleteModal")).show();
     });
   });
 </script>

@@ -19,6 +19,7 @@ class SchedulingWindow(models.Model):
     end_date = models.DateField()
     allow_worker_view = models.BooleanField(default=False)
     allow_worker_edit_shifts = models.BooleanField(default=False)
+    allow_worker_register = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

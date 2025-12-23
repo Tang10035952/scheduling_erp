@@ -111,11 +111,12 @@ def get_active_window():
             True,
             latest.allow_worker_view,
             latest.allow_worker_edit_shifts,
+            latest.allow_worker_register,
         )
     today = localtime(now()).date()
     start = today - timedelta(days=today.weekday())
     end = start + timedelta(days=6)
-    return start, end, False, False, False
+    return start, end, False, False, False, False
 
 
 @login_required
@@ -136,7 +137,7 @@ def scheduling_timeline(request):
     if not is_manager_user and not is_worker_user:
         return redirect("users:login")
 
-    _, _, _, allow_worker_view, allow_worker_edit_shifts = get_active_window()
+    _, _, _, allow_worker_view, allow_worker_edit_shifts, _ = get_active_window()
     if not is_manager_user and not allow_worker_view:
         return render(
             request,
@@ -496,13 +497,13 @@ def create_shift(request):
         return JsonResponse({"ok": False, "error": "僅限店長操作"}, status=403)
     data = json.loads(request.body)
     employee_id = data.get("employee_id")
-    store_id = data.get("store_id")
+    store_id = data.get("store_id") or None
     date_str = data.get("date")
     start_str = data.get("start")
     end_str = data.get("end")
     note = (data.get("note") or "").strip()
 
-    if not employee_id or not store_id or not date_str or not start_str or not end_str:
+    if not employee_id or not date_str or not start_str or not end_str:
         return JsonResponse({"ok": False, "error": "missing fields"}, status=400)
 
     date = parse_date(date_str)
@@ -520,7 +521,7 @@ def create_shift(request):
     if end_min <= start_min:
         return JsonResponse({"ok": False, "error": "invalid range"}, status=400)
 
-    if not Store.objects.filter(id=store_id).exists():
+    if store_id and not Store.objects.filter(id=store_id).exists():
         return JsonResponse({"ok": False, "error": "invalid store"}, status=400)
 
     conflict = Shift.objects.filter(
@@ -578,7 +579,9 @@ def update_shift(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "invalid range"}, status=400)
 
-    if not store_id or not Store.objects.filter(id=store_id).exists():
+    if store_id in ("", "null", "none"):
+        store_id = None
+    if store_id and not Store.objects.filter(id=store_id).exists():
         return JsonResponse({"ok": False, "error": "invalid store"}, status=400)
 
     split_start_time = None
@@ -596,7 +599,10 @@ def update_shift(request):
         if not Store.objects.filter(id=split_store_id).exists():
             return JsonResponse({"ok": False, "error": "invalid split store"}, status=400)
         if split_start_time < end_time and split_end_time > start_time:
-            return JsonResponse({"ok": False, "error": "split overlap"}, status=400)
+            return JsonResponse(
+                {"ok": False, "error": "排班時間重疊，請重新確認。"},
+                status=400,
+            )
 
     conflict = Shift.objects.filter(
         employee_id=shift.employee_id,
@@ -646,7 +652,7 @@ def update_shift(request):
 @login_required
 @user_passes_test(is_manager)
 def manage_window(request):
-    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts = get_active_window()
+    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, allow_worker_register = get_active_window()
     stores = Store.objects.all()
 
     if request.method == "POST":
@@ -688,6 +694,7 @@ def manage_window(request):
             end_str = request.POST.get("end_date")
             allow_worker_view = allow_worker_view
             allow_worker_edit_shifts = allow_worker_edit_shifts
+            allow_worker_register = allow_worker_register
             start = parse_date(start_str) if start_str else None
             end = parse_date(end_str) if end_str else None
             if not start or not end:
@@ -700,6 +707,7 @@ def manage_window(request):
                     end_date=end,
                     allow_worker_view=allow_worker_view,
                     allow_worker_edit_shifts=allow_worker_edit_shifts,
+                    allow_worker_register=allow_worker_register,
                 )
                 messages.success(request, "可排班日期設定已更新。")
                 return redirect("scheduling:manage_window")
@@ -707,11 +715,13 @@ def manage_window(request):
         elif action == "update_permissions":
             allow_worker_view = request.POST.get("allow_worker_view") == "on"
             allow_worker_edit_shifts = request.POST.get("allow_worker_edit_shifts") == "on"
+            allow_worker_register = request.POST.get("allow_worker_register") == "on"
             SchedulingWindow.objects.create(
                 start_date=start_date,
                 end_date=end_date,
                 allow_worker_view=allow_worker_view,
                 allow_worker_edit_shifts=allow_worker_edit_shifts,
+                allow_worker_register=allow_worker_register,
             )
             messages.success(request, "員工設定已更新。")
             return redirect("scheduling:manage_window")
@@ -725,6 +735,7 @@ def manage_window(request):
             "has_manager_window": has_manager_window,
             "allow_worker_view": allow_worker_view,
             "allow_worker_edit_shifts": allow_worker_edit_shifts,
+            "allow_worker_register": allow_worker_register,
             "stores": stores,
         },
     )
@@ -740,7 +751,7 @@ def worker_schedule(request):
     if profile.is_manager():
         return redirect("scheduling:timeline")
 
-    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts = get_active_window()
+    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, _ = get_active_window()
     date_str = request.GET.get("date")
     date = parse_date(date_str) if date_str else None
     if not date:
@@ -807,7 +818,7 @@ def worker_schedule(request):
                 "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
             })
 
-        if not any(entry["shifts"] for entry in day_entries):
+        if not any(entry["shifts"] for entry in day_entries) and worker.id != profile.id:
             continue
 
         rows.append({
@@ -849,7 +860,7 @@ def worker_schedule(request):
 
 
 def worker_shift_edit_allowed():
-    _, _, _, _, allow_worker_edit_shifts = get_active_window()
+    _, _, _, _, allow_worker_edit_shifts, _ = get_active_window()
     return allow_worker_edit_shifts
 
 
@@ -879,7 +890,7 @@ def create_availability(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _ = get_active_window()
     if date < start_date or date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -978,7 +989,7 @@ def update_availability(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _ = get_active_window()
     if avail.date < start_date or avail.date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -1048,7 +1059,7 @@ def create_worker_shift(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _ = get_active_window()
     if date < start_date or date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -1113,7 +1124,7 @@ def update_worker_shift(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _ = get_active_window()
     if shift.date < start_date or shift.date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 

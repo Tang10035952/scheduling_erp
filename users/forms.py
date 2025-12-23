@@ -1,9 +1,39 @@
+import os
 import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 from .models import UserProfile
+
+
+IMAGE_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+    "image/heic-sequence",
+    "image/heif-sequence",
+}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".heic", ".heif"}
+
+
+def _is_allowed_image_upload(file_obj):
+    content_type = (file_obj.content_type or "").lower()
+    if content_type in IMAGE_CONTENT_TYPES:
+        return True
+    if content_type in {"application/octet-stream", ""}:
+        name = (file_obj.name or "").lower()
+        return os.path.splitext(name)[1] in IMAGE_EXTENSIONS
+    return False
+
+
+def _is_allowed_upload(file_obj, allow_pdf=False):
+    if _is_allowed_image_upload(file_obj):
+        return True
+    if allow_pdf and (file_obj.content_type or "").lower() == "application/pdf":
+        return True
+    return False
 
 
 class WorkerCreationForm(UserCreationForm):
@@ -72,3 +102,184 @@ class WorkerCreationForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+GENDER_CHOICES = [("男", "男"), ("女", "女")]
+MARITAL_CHOICES = [("單身", "單身"), ("已婚", "已婚")]
+EDUCATION_CHOICES = [
+    ("高中在學", "高中在學"),
+    ("高中畢業", "高中畢業"),
+    ("大學在學", "大學在學"),
+    ("大學畢業", "大學畢業"),
+    ("其他", "其他"),
+]
+
+
+
+
+class ManagerWorkerCreateForm(UserCreationForm):
+    username = forms.CharField(label="帳號", min_length=6, max_length=150)
+    display_name = forms.CharField(label="名稱", max_length=50)
+    real_name = forms.CharField(label="真實姓名", max_length=50)
+    gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES)
+    birthday = forms.DateField(
+        label="生日",
+        input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+    )
+    id_number = forms.CharField(label="身分證字號", max_length=10)
+    marital_status = forms.ChoiceField(label="婚姻狀況", choices=MARITAL_CHOICES)
+    education = forms.ChoiceField(label="學歷", choices=EDUCATION_CHOICES)
+    education_other = forms.CharField(label="學歷補充說明", required=False, max_length=10)
+    contact_address = forms.CharField(label="通訊地址", max_length=255)
+    registered_address = forms.CharField(label="戶籍地址", max_length=255)
+    mobile_phone = forms.CharField(label="手機電話", max_length=10)
+    emergency_contact_name = forms.CharField(label="緊急聯絡人姓名", max_length=10)
+    emergency_contact_relation = forms.CharField(label="緊急聯絡人關係", max_length=10)
+    emergency_contact_phone = forms.CharField(label="緊急聯絡人電話", max_length=10)
+    work_experience = forms.CharField(
+        label="工作經歷",
+        max_length=50,
+        widget=forms.Textarea(attrs={"rows": 3, "maxlength": 50}),
+    )
+    id_card_front = forms.FileField(label="身分證正面", required=False)
+    id_card_back = forms.FileField(label="身分證反面", required=False)
+    driver_license_file = forms.FileField(label="駕照", required=False)
+    bankbook_file = forms.FileField(label="存摺影本", required=False)
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ("username",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].widget.attrs.setdefault("placeholder", "至少6碼，可純數字或英文字")
+        self.fields["password2"].widget.attrs.setdefault("placeholder", "再次輸入密碼")
+
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("帳號已被使用。")
+        return username
+
+    def clean_id_number(self):
+        value = (self.cleaned_data.get("id_number") or "").strip()
+        if not re.fullmatch(r"[A-Z][0-9]{9}", value):
+            raise forms.ValidationError("身分證字號格式不正確。")
+        return value
+
+    def clean_mobile_phone(self):
+        value = (self.cleaned_data.get("mobile_phone") or "").strip()
+        if not re.fullmatch(r"[0-9]{10}", value):
+            raise forms.ValidationError("手機電話格式不正確，需為 10 碼數字。")
+        return value
+
+    def clean_emergency_contact_phone(self):
+        value = (self.cleaned_data.get("emergency_contact_phone") or "").strip()
+        if not re.fullmatch(r"[0-9]{10}", value):
+            raise forms.ValidationError("緊急聯絡人電話需為 10 碼數字。")
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("education") == "其他" and not cleaned.get("education_other"):
+            self.add_error("education_other", "請補充學歷說明。")
+
+        if self.is_bound:
+            for field_name in ("id_card_front", "id_card_back"):
+                if not self.files.get(field_name):
+                    self.add_error(field_name, "請上傳身分證正反面。")
+        for field_name in ("id_card_front", "id_card_back"):
+            file_obj = self.files.get(field_name)
+            if not file_obj:
+                continue
+            if not _is_allowed_image_upload(file_obj):
+                self.add_error(field_name, "身分證檔案需為 JPG/PNG/HEIC。")
+            if file_obj.size > 10 * 1024 * 1024:
+                self.add_error(field_name, "檔案大小不可超過 10MB。")
+        for field_name in ("driver_license_file", "bankbook_file"):
+            file_obj = self.files.get(field_name)
+            if not file_obj:
+                continue
+            if not _is_allowed_upload(file_obj, allow_pdf=True):
+                self.add_error(field_name, "檔案格式需為 JPG/PNG/HEIC/PDF。")
+            if file_obj.size > 10 * 1024 * 1024:
+                self.add_error(field_name, "檔案大小不可超過 10MB。")
+
+        return cleaned
+
+
+class ManagerWorkerUpdateForm(forms.Form):
+    display_name = forms.CharField(label="名稱", max_length=50)
+    real_name = forms.CharField(label="真實姓名", max_length=50)
+    gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES)
+    birthday = forms.DateField(
+        label="生日",
+        input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+    )
+    id_number = forms.CharField(label="身分證字號", max_length=10)
+    marital_status = forms.ChoiceField(label="婚姻狀況", choices=MARITAL_CHOICES)
+    education = forms.ChoiceField(label="學歷", choices=EDUCATION_CHOICES)
+    education_other = forms.CharField(label="學歷補充說明", required=False, max_length=10)
+    contact_address = forms.CharField(label="通訊地址", max_length=255)
+    registered_address = forms.CharField(label="戶籍地址", max_length=255)
+    mobile_phone = forms.CharField(label="手機電話", max_length=10)
+    emergency_contact_name = forms.CharField(label="緊急聯絡人姓名", max_length=10)
+    emergency_contact_relation = forms.CharField(label="緊急聯絡人關係", max_length=10)
+    emergency_contact_phone = forms.CharField(label="緊急聯絡人電話", max_length=10)
+    work_experience = forms.CharField(
+        label="工作經歷",
+        max_length=50,
+        widget=forms.Textarea(attrs={"rows": 3, "maxlength": 50}),
+    )
+    id_card_front = forms.FileField(label="身分證正面", required=False)
+    id_card_back = forms.FileField(label="身分證反面", required=False)
+    driver_license_file = forms.FileField(label="駕照", required=False)
+    bankbook_file = forms.FileField(label="存摺影本", required=False)
+
+    def clean_id_number(self):
+        value = (self.cleaned_data.get("id_number") or "").strip()
+        if not re.fullmatch(r"[A-Z][0-9]{9}", value):
+            raise forms.ValidationError("身分證字號格式不正確。")
+        return value
+
+    def clean_mobile_phone(self):
+        value = (self.cleaned_data.get("mobile_phone") or "").strip()
+        if not re.fullmatch(r"[0-9]{10}", value):
+            raise forms.ValidationError("手機電話格式不正確，需為 10 碼數字。")
+        return value
+
+    def clean_emergency_contact_phone(self):
+        value = (self.cleaned_data.get("emergency_contact_phone") or "").strip()
+        if not re.fullmatch(r"[0-9]{10}", value):
+            raise forms.ValidationError("緊急聯絡人電話需為 10 碼數字。")
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("education") == "其他" and not cleaned.get("education_other"):
+            self.add_error("education_other", "請補充學歷說明。")
+
+        if self.is_bound:
+            for field_name in ("driver_license_file", "bankbook_file"):
+                if not self.files.get(field_name):
+                    self.add_error(field_name, "請上傳必要附件。")
+        for field_name in ("driver_license_file", "bankbook_file"):
+            file_obj = self.files.get(field_name)
+            if not file_obj:
+                continue
+            if not _is_allowed_upload(file_obj, allow_pdf=True):
+                self.add_error(field_name, "檔案格式需為 JPG/PNG/HEIC/PDF。")
+            if file_obj.size > 10 * 1024 * 1024:
+                self.add_error(field_name, "檔案大小不可超過 10MB。")
+
+        for field_name in ("id_card_front", "id_card_back"):
+            file_obj = self.files.get(field_name)
+            if not file_obj:
+                continue
+            if not _is_allowed_image_upload(file_obj):
+                self.add_error(field_name, "身分證檔案需為 JPG/PNG/HEIC。")
+            if file_obj.size > 10 * 1024 * 1024:
+                self.add_error(field_name, "檔案大小不可超過 10MB。")
+        return cleaned

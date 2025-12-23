@@ -1,0 +1,597 @@
+{% extends 'base.html' %}
+{% load form_filters %}
+{% block title %}員工基本資料{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="mb-0">員工基本資料</h2>
+  <a class="btn btn-outline-secondary" href="{% url 'users:create_worker' %}">返回員工清單</a>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
+      {% endif %}
+
+      <h6 class="mb-3">帳號資訊</h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">帳號{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          {% if is_create %}
+            {{ form.username|add_class:"form-control" }}
+            {% if form.username.errors %}
+              <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+            {% endif %}
+          {% else %}
+            <input type="text" class="form-control" value="{{ profile.user.username }}" readonly>
+          {% endif %}
+        </div>
+        {% if is_create %}
+        <div class="col-md-6">
+          <label class="form-label">名稱<span class="required-star">*</span></label>
+          {{ form.display_name|add_class:"form-control" }}
+          {% if form.display_name.errors %}
+            <div class="text-danger small mt-1">{{ form.display_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="col-md-6">
+          <label class="form-label">名稱</label>
+          {{ form.display_name|add_class:"form-control" }}
+          {% if form.display_name.errors %}
+            <div class="text-danger small mt-1">{{ form.display_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% if is_create %}
+      <div class="row g-3 mt-0">
+        <div class="col-md-6">
+          <label class="form-label">密碼<span class="required-star">*</span></label>
+          {{ form.password1|add_class:"form-control" }}
+          {% if form.password1.errors %}
+            <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">再次確認密碼<span class="required-star">*</span></label>
+          {{ form.password2|add_class:"form-control" }}
+          {% if form.password2.errors %}
+            <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <hr class="my-4">
+      <h6 class="mb-3">基本資料</h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">真實姓名<span class="required-star">*</span></label>
+          {{ form.real_name|add_class:"form-control" }}
+          {% if form.real_name.errors %}
+            <div class="text-danger small mt-1">{{ form.real_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">性別<span class="required-star">*</span></label>
+          {{ form.gender|add_class:"form-select" }}
+          {% if form.gender.errors %}
+            <div class="text-danger small mt-1">{{ form.gender.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">生日<span class="required-star">*</span></label>
+          {{ form.birthday|add_class:"form-control" }}
+          {% if form.birthday.errors %}
+            <div class="text-danger small mt-1">{{ form.birthday.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">身分證字號<span class="required-star">*</span></label>
+          {{ form.id_number|add_class:"form-control" }}
+          {% if form.id_number.errors %}
+            <div class="text-danger small mt-1">{{ form.id_number.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">婚姻狀況<span class="required-star">*</span></label>
+          {{ form.marital_status|add_class:"form-select" }}
+          {% if form.marital_status.errors %}
+            <div class="text-danger small mt-1">{{ form.marital_status.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">學歷<span class="required-star">*</span></label>
+          {{ form.education|add_class:"form-select" }}
+          {% if form.education.errors %}
+            <div class="text-danger small mt-1">{{ form.education.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-12 education-other">
+          <label class="form-label">學歷（其他 10 字內）</label>
+          {{ form.education_other|add_class:"form-control" }}
+          {% if form.education_other.errors %}
+            <div class="text-danger small mt-1">{{ form.education_other.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">通訊地址<span class="required-star">*</span></label>
+          {{ form.contact_address|add_class:"form-control" }}
+          {% if form.contact_address.errors %}
+            <div class="text-danger small mt-1">{{ form.contact_address.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label d-flex align-items-center justify-content-between">
+            <span>戶籍地址<span class="required-star">*</span></span>
+            <span class="form-check small">
+              <input class="form-check-input" type="checkbox" id="sameAddressToggle">
+              <label class="form-check-label" for="sameAddressToggle">同通訊地址</label>
+            </span>
+          </label>
+          {{ form.registered_address|add_class:"form-control" }}
+          {% if form.registered_address.errors %}
+            <div class="text-danger small mt-1">{{ form.registered_address.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">手機電話<span class="required-star">*</span></label>
+          {{ form.mobile_phone|add_class:"form-control" }}
+          {% if form.mobile_phone.errors %}
+            <div class="text-danger small mt-1">{{ form.mobile_phone.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">緊急聯絡人<span class="required-star">*</span></label>
+          <div class="row g-2">
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-muted">姓名</label>
+              {{ form.emergency_contact_name|add_class:"form-control" }}
+              {% if form.emergency_contact_name.errors %}
+                <div class="text-danger small mt-1">{{ form.emergency_contact_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-muted">關係</label>
+              {{ form.emergency_contact_relation|add_class:"form-control" }}
+              {% if form.emergency_contact_relation.errors %}
+                <div class="text-danger small mt-1">{{ form.emergency_contact_relation.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-muted">電話</label>
+              {{ form.emergency_contact_phone|add_class:"form-control" }}
+              {% if form.emergency_contact_phone.errors %}
+                <div class="text-danger small mt-1">{{ form.emergency_contact_phone.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">工作經歷<span class="required-star">*</span></label>
+          {{ form.work_experience|add_class:"form-control" }}
+          <small class="text-muted d-block mt-1">服務機關、任職期間、離職原因，若沒有打無即可。</small>
+          {% if form.work_experience.errors %}
+            <div class="text-danger small mt-1">{{ form.work_experience.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <hr class="my-4">
+      <h6 class="mb-2">附件上傳</h6>
+      <div class="text-danger small mb-3">上傳時避免圖片反光，確保文字清晰可辨。檔案格式限 JPG/PNG/PDF/HEIC，單檔最大 10MB。</div>
+      <div class="row g-3" data-upload-form="{% if not is_create %}true{% else %}false{% endif %}" data-profile-id="{{ profile.id|default:'' }}">
+        <div class="col-md-6">
+          <label class="form-label">身分證正面{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label for="{{ form.id_card_front.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          {{ form.id_card_front|add_class:"form-control upload-input" }}
+          {% if form.id_card_front.errors %}
+            <div class="text-danger small mt-1">{{ form.id_card_front.errors.0 }}</div>
+          {% endif %}
+          <div class="upload-progress mt-2 d-none">
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="upload-preview mt-2">
+          {% if not is_create and documents.id_card_front %}
+              {% with doc=documents.id_card_front %}
+                <a href="{{ doc.file.url }}" class="doc-preview-link" data-filename="{{ doc.file.name|cut:"worker_documents/" }}">{{ doc.file.name|cut:"worker_documents/" }}</a>
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="id_card_front">刪除</button>
+              {% endwith %}
+          {% elif not is_create %}
+              <span class="text-muted">未上傳</span>
+          {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">身分證反面{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label for="{{ form.id_card_back.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          {{ form.id_card_back|add_class:"form-control upload-input" }}
+          {% if form.id_card_back.errors %}
+            <div class="text-danger small mt-1">{{ form.id_card_back.errors.0 }}</div>
+          {% endif %}
+          <div class="upload-progress mt-2 d-none">
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="upload-preview mt-2">
+          {% if not is_create and documents.id_card_back %}
+              {% with doc=documents.id_card_back %}
+                <a href="{{ doc.file.url }}" class="doc-preview-link" data-filename="{{ doc.file.name|cut:"worker_documents/" }}">{{ doc.file.name|cut:"worker_documents/" }}</a>
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="id_card_back">刪除</button>
+              {% endwith %}
+          {% elif not is_create %}
+              <span class="text-muted">未上傳</span>
+          {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">駕照{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label for="{{ form.driver_license_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          {{ form.driver_license_file|add_class:"form-control upload-input" }}
+          {% if form.driver_license_file.errors %}
+            <div class="text-danger small mt-1">{{ form.driver_license_file.errors.0 }}</div>
+          {% endif %}
+          <div class="upload-progress mt-2 d-none">
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="upload-preview mt-2">
+          {% if not is_create and documents.driver_license %}
+              {% with doc=documents.driver_license %}
+                <a href="{{ doc.file.url }}" class="doc-preview-link" data-filename="{{ doc.file.name|cut:"worker_documents/" }}">{{ doc.file.name|cut:"worker_documents/" }}</a>
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="driver_license">刪除</button>
+              {% endwith %}
+          {% elif not is_create %}
+              <span class="text-muted">未上傳</span>
+          {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">存摺影本{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label for="{{ form.bankbook_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          {{ form.bankbook_file|add_class:"form-control upload-input" }}
+          {% if form.bankbook_file.errors %}
+            <div class="text-danger small mt-1">{{ form.bankbook_file.errors.0 }}</div>
+          {% endif %}
+          <div class="upload-progress mt-2 d-none">
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="upload-preview mt-2">
+          {% if not is_create and documents.bankbook %}
+              {% with doc=documents.bankbook %}
+                <a href="{{ doc.file.url }}" class="doc-preview-link" data-filename="{{ doc.file.name|cut:"worker_documents/" }}">{{ doc.file.name|cut:"worker_documents/" }}</a>
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="bankbook">刪除</button>
+              {% endwith %}
+          {% elif not is_create %}
+              <span class="text-muted">未上傳</span>
+          {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end mt-4">
+        <button type="submit" class="btn btn-primary" id="saveWorkerBtn">
+          {% if is_create %}新增員工{% else %}儲存變更{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+  .required-star {
+    color: #dc3545;
+    margin-left: 4px;
+  }
+  .hidden {
+    display: none;
+  }
+  .upload-input {
+    display: none;
+  }
+  .preview-frame {
+    border: 0;
+    width: 100%;
+    height: 70vh;
+  }
+  .preview-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+</style>
+{% endblock %}
+{% block extra_js %}
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="documentPreviewLabel">檔案預覽</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="documentPreviewBody"></div>
+      </div>
+      <div class="modal-footer">
+        <a id="documentDownloadBtn" class="btn btn-primary" href="#" download>下載</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const uploadSection = document.querySelector("[data-upload-form]");
+  const saveBtn = document.getElementById("saveWorkerBtn");
+  const isCreate = uploadSection && uploadSection.dataset.uploadForm !== "true";
+  const profileId = uploadSection ? uploadSection.dataset.profileId : "";
+  const previewModalEl = document.getElementById("documentPreviewModal");
+  const previewBody = document.getElementById("documentPreviewBody");
+  const downloadBtn = document.getElementById("documentDownloadBtn");
+  const previewModal = previewModalEl && window.bootstrap
+    ? new window.bootstrap.Modal(previewModalEl)
+    : null;
+
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return "";
+  };
+
+  const setSavingDisabled = (disabled) => {
+    if (!saveBtn) return;
+    saveBtn.disabled = disabled;
+  };
+
+  let pendingUploads = 0;
+  const updateSaveState = () => {
+    if (!saveBtn) return;
+    saveBtn.disabled = pendingUploads > 0;
+  };
+
+  const showUploadError = (inputEl, message) => {
+    let error = inputEl.parentElement.querySelector(".upload-error");
+    if (!error) {
+      error = document.createElement("div");
+      error.className = "text-danger small mt-1 upload-error";
+      inputEl.parentElement.appendChild(error);
+    }
+    error.textContent = message;
+  };
+
+  const clearUploadError = (inputEl) => {
+    const error = inputEl.parentElement.querySelector(".upload-error");
+    if (error) {
+      error.textContent = "";
+    }
+  };
+
+  const updatePreview = (inputEl, url, category) => {
+    const preview = inputEl.parentElement.querySelector(".upload-preview");
+    if (!preview) return;
+    const fileName = url.split("/").pop();
+    preview.innerHTML = `<a href="${url}" class="doc-preview-link" data-filename="${fileName}">${fileName}</a>` +
+      `<button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="${category}">刪除</button>`;
+  };
+
+  const imageTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+    "image/heic-sequence",
+    "image/heif-sequence",
+  ];
+  const imageExts = [".jpg", ".jpeg", ".png", ".heic", ".heif"];
+
+  const isAllowedFile = (file, allowPdf) => {
+    const type = (file.type || "").toLowerCase();
+    const name = (file.name || "").toLowerCase();
+    if (imageTypes.includes(type)) return true;
+    if (allowPdf && type === "application/pdf") return true;
+    if (type === "application/octet-stream" || !type) {
+      if (imageExts.some((ext) => name.endsWith(ext))) return true;
+      if (allowPdf && name.endsWith(".pdf")) return true;
+    }
+    return false;
+  };
+
+  const uploadFile = (inputEl, category, allowPdf) => {
+    const file = inputEl.files && inputEl.files[0];
+    if (!file) return;
+    if (!isAllowedFile(file, allowPdf)) {
+      showUploadError(inputEl, allowPdf ? "檔案格式需為 JPG/PNG/HEIC/PDF。" : "身分證檔案需為 JPG/PNG/HEIC。");
+      inputEl.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showUploadError(inputEl, "檔案大小不可超過 10MB。");
+      inputEl.value = "";
+      return;
+    }
+    clearUploadError(inputEl);
+    const progressWrap = inputEl.parentElement.querySelector(".upload-progress");
+    const progressBar = progressWrap ? progressWrap.querySelector(".progress-bar") : null;
+    if (progressWrap && progressBar) {
+      progressWrap.classList.remove("d-none");
+      progressBar.style.width = "0%";
+    }
+    pendingUploads += 1;
+    updateSaveState();
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/users/create-worker/${profileId}/upload/`);
+    xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
+    xhr.upload.addEventListener("progress", (event) => {
+      if (!event.lengthComputable || !progressBar) return;
+      const percent = Math.round((event.loaded / event.total) * 100);
+      progressBar.style.width = `${percent}%`;
+    });
+    xhr.addEventListener("load", () => {
+      pendingUploads = Math.max(0, pendingUploads - 1);
+      updateSaveState();
+      if (progressWrap) progressWrap.classList.add("d-none");
+      try {
+        const data = JSON.parse(xhr.responseText || "{}");
+        if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
+          updatePreview(inputEl, data.file_url, category);
+        } else {
+          showUploadError(inputEl, data.error || "上傳失敗。");
+        }
+      } catch (err) {
+        showUploadError(inputEl, "上傳失敗。");
+      }
+      inputEl.value = "";
+    });
+    xhr.addEventListener("error", () => {
+      pendingUploads = Math.max(0, pendingUploads - 1);
+      updateSaveState();
+      if (progressWrap) progressWrap.classList.add("d-none");
+      showUploadError(inputEl, "上傳失敗。");
+      inputEl.value = "";
+    });
+    const formData = new FormData();
+    formData.append("category", category);
+    formData.append("file", file);
+    xhr.send(formData);
+  };
+
+  const openPreviewModal = (url, fileName) => {
+    if (!previewBody || !downloadBtn) return;
+    const lower = (url || "").toLowerCase();
+    const isImage = [".jpg", ".jpeg", ".png"].some((ext) => lower.endsWith(ext));
+    const isHeif = [".heic", ".heif"].some((ext) => lower.endsWith(ext));
+    if (isImage) {
+      previewBody.innerHTML = `<img src="${url}" class="preview-image" alt="${fileName}">`;
+    } else if (isHeif) {
+      previewBody.innerHTML = `<div class="text-muted">此檔案格式不支援預覽，請點「下載」查看。</div>`;
+    } else {
+      previewBody.innerHTML = `<iframe class="preview-frame" src="${url}"></iframe>`;
+    }
+    downloadBtn.href = url;
+    downloadBtn.setAttribute("download", fileName || "");
+    if (previewModal) {
+      previewModal.show();
+    } else {
+      window.open(url, "_blank");
+    }
+  };
+
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest(".doc-preview-link");
+    if (!link) return;
+    event.preventDefault();
+    const url = link.getAttribute("href");
+    const fileName = link.getAttribute("data-filename") || (url ? url.split("/").pop() : "");
+    openPreviewModal(url, fileName);
+  });
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest(".doc-delete-btn");
+    if (!button) return;
+    event.preventDefault();
+    if (!window.confirm("確定要刪除這個檔案嗎？")) return;
+    const category = button.getAttribute("data-category");
+    const preview = button.closest(".upload-preview");
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/users/create-worker/${profileId}/delete-document/`);
+    xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
+    xhr.addEventListener("load", () => {
+      let ok = false;
+      try {
+        const data = JSON.parse(xhr.responseText || "{}");
+        ok = xhr.status >= 200 && xhr.status < 300 && data.ok;
+      } catch (err) {
+        ok = false;
+      }
+      if (ok && preview) {
+        preview.innerHTML = `<span class="text-muted">未上傳</span>`;
+      } else if (!ok) {
+        window.alert("刪除失敗，請稍後再試。");
+      }
+    });
+    xhr.addEventListener("error", () => {
+      window.alert("刪除失敗，請稍後再試。");
+    });
+    const formData = new FormData();
+    formData.append("category", category);
+    xhr.send(formData);
+  });
+
+  const educationSelect = document.getElementById("id_education");
+  const educationOtherInput = document.getElementById("id_education_other");
+  const sameAddressToggle = document.getElementById("sameAddressToggle");
+  const contactAddressInput = document.getElementById("id_contact_address");
+  const registeredAddressInput = document.getElementById("id_registered_address");
+
+  const toggleEducationOther = () => {
+    if (!educationSelect || !educationOtherInput) return;
+    const wrapper = educationOtherInput.closest(".education-other");
+    if (!wrapper) return;
+    const show = educationSelect.value === "其他";
+    wrapper.classList.toggle("hidden", !show);
+  };
+
+  if (educationSelect) {
+    educationSelect.addEventListener("change", toggleEducationOther);
+    toggleEducationOther();
+  }
+
+  if (sameAddressToggle && contactAddressInput && registeredAddressInput) {
+    sameAddressToggle.addEventListener("change", () => {
+      if (sameAddressToggle.checked) {
+        registeredAddressInput.value = contactAddressInput.value;
+        registeredAddressInput.readOnly = true;
+      } else {
+        registeredAddressInput.readOnly = false;
+      }
+    });
+    contactAddressInput.addEventListener("input", () => {
+      if (sameAddressToggle.checked) {
+        registeredAddressInput.value = contactAddressInput.value;
+      }
+    });
+  }
+
+  if (!isCreate && profileId) {
+    document.querySelectorAll(".upload-input").forEach((inputEl) => {
+      const name = inputEl.getAttribute("name");
+      if (!name) return;
+      let category = null;
+      let allowPdf = true;
+      if (name === "id_card_front") {
+        category = "id_card_front";
+        allowPdf = false;
+      } else if (name === "id_card_back") {
+        category = "id_card_back";
+        allowPdf = false;
+      } else if (name === "driver_license_file") {
+        category = "driver_license";
+      } else if (name === "bankbook_file") {
+        category = "bankbook";
+      }
+      if (!category) return;
+      inputEl.addEventListener("change", () => uploadFile(inputEl, category, allowPdf));
+    });
+  }
+</script>
+{% endblock %}

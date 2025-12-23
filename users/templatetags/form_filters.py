@@ -4,4 +4,7 @@ register = template.Library()
 
 @register.filter(name='add_class')
 def add_class(field, css):
-    return field.as_widget(attrs={"class": css})
+    attrs = field.field.widget.attrs.copy()
+    existing = attrs.get("class", "")
+    attrs["class"] = f"{existing} {css}".strip()
+    return field.as_widget(attrs=attrs)

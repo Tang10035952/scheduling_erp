@@ -2,6 +2,7 @@ import os
 import django
 from datetime import date, time, timedelta
 import random
+import string
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 os.environ.setdefault('DB_NAME', 'scheduling_erp_db')
@@ -13,7 +14,8 @@ django.setup()
 
 from django.contrib.auth.models import User
 from django.db import connection
-from users.models import UserProfile
+from django.core.files.base import ContentFile
+from users.models import UserProfile, WorkerDocument
 from scheduling.models import Shift, SchedulingWindow, WorkAvailability, Store
 
 
@@ -27,6 +29,7 @@ def reset_database():
     Shift.objects.all().delete()
     SchedulingWindow.objects.all().delete()
     Store.objects.all().delete()
+    WorkerDocument.objects.all().delete()
 
     UserProfile.objects.all().delete()
     User.objects.exclude(is_superuser=True).delete()
@@ -75,21 +78,70 @@ def create_manager():
 # Step 3：建立員工帳號
 # -------------------------------
 FAKE_WORKERS = [
-    "陳志明",
-    "林美玲",
-    "張建宏",
-    "王雅雯",
-    "李冠宇",
-    "黃心怡",
-    "吳宇軒",
-    "周佳穎",
+    ("陳志明", "陳志明"),
+    ("林美玲", "林美玲"),
+    ("張建宏", "張建宏"),
+    ("王雅雯", "王雅雯"),
+    ("李冠宇", "李冠宇"),
+    ("黃心怡", "黃心怡"),
+    ("吳宇軒", "吳宇軒"),
+    ("周佳穎", "周佳穎"),
 ]
+
+EDUCATION_CHOICES = ["高中在學", "高中畢業", "大學在學", "大學畢業", "其他"]
+MARITAL_CHOICES = ["單身", "已婚"]
+GENDER_CHOICES = ["男", "女"]
+
+
+def random_id_number():
+    prefix = random.choice(string.ascii_uppercase)
+    return prefix + "".join(random.choices(string.digits, k=9))
+
+
+def random_phone():
+    return "".join(random.choices(string.digits, k=10))
+
+
+def random_birthday():
+    today = date.today()
+    years = random.randint(18, 35)
+    month = random.randint(1, 12)
+    day = random.randint(1, 28)
+    return date(today.year - years, month, day)
+
+
+def attach_documents(profile):
+    def make_file(name):
+        return ContentFile(b"dummy file", name=name)
+
+    WorkerDocument.objects.create(
+        profile=profile,
+        category="id_card_front",
+        file=make_file(f"{profile.user.username}_id_front.txt"),
+    )
+    WorkerDocument.objects.create(
+        profile=profile,
+        category="id_card_back",
+        file=make_file(f"{profile.user.username}_id_back.txt"),
+    )
+    WorkerDocument.objects.create(
+        profile=profile,
+        category="driver_license",
+        file=make_file(f"{profile.user.username}_driver.txt"),
+    )
+    WorkerDocument.objects.create(
+        profile=profile,
+        category="bankbook",
+        file=make_file(f"{profile.user.username}_bankbook.txt"),
+    )
 
 def create_workers(stores):
     print(f"👥 Creating {len(FAKE_WORKERS)} workers...")
     workers = []
 
-    for i, name in enumerate(FAKE_WORKERS, start=1):
+    for i, (display_name, real_name) in enumerate(FAKE_WORKERS, start=1):
+        education = random.choice(EDUCATION_CHOICES)
+        education_other = "補充說明" if education == "其他" else ""
         user = User.objects.create_user(
             username=f"worker{i}",
             password="123456",
@@ -99,9 +151,24 @@ def create_workers(stores):
         profile = UserProfile.objects.create(
             user=user,
             role="worker",
-            name=name,
+            name=display_name,
+            real_name=real_name,
+            gender=random.choice(GENDER_CHOICES),
+            birthday=random_birthday(),
+            id_number=random_id_number(),
+            marital_status=random.choice(MARITAL_CHOICES),
+            education=education,
+            education_other=education_other,
+            contact_address=f"台北市中山區中山北路 {i} 段 {i} 號",
+            registered_address="同通訊地址",
+            mobile_phone=random_phone(),
+            emergency_contact_name="王小明",
+            emergency_contact_relation="家人",
+            emergency_contact_phone=random_phone(),
+            work_experience="飲料店 / 2022-2023 / 個人規劃",
             primary_store=random.choice(stores),
         )
+        attach_documents(profile)
         workers.append(profile)
 
     return workers
@@ -178,6 +245,8 @@ def create_window_and_availability(workers):
         start_date=month_start,
         end_date=last_day,
         allow_worker_view=True,
+        allow_worker_edit_shifts=True,
+        allow_worker_register=True,
     )
 
     target_date = date(today.year, today.month, 16)

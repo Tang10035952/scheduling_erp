@@ -3,10 +3,13 @@
 {% block title %}員工管理{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
     <h2 class="mb-0">員工管理</h2>
-    <a class="btn btn-outline-secondary" href="{% url 'scheduling:timeline' %}?view=week">返回班表</a>
   </div>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <a class="btn btn-primary" href="{% url 'users:worker_create' %}">新增員工</a>
+  <a class="btn btn-outline-secondary" href="{% url 'scheduling:timeline' %}?view=week">返回班表</a>
+</div>
 
 {% if messages %}
   {% for message in messages %}
@@ -14,122 +17,69 @@
   {% endfor %}
 {% endif %}
 
-<div class="row">
-  <div class="col-lg-6">
-    <div class="card shadow-sm mb-4">
-      <div class="card-body">
-        <form method="post" novalidate>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <div class="alert alert-danger">
-              {{ form.non_field_errors.0 }}
-            </div>
-          {% endif %}
-          <div class="mb-3">
-            <label class="form-label">帳號</label>
-            {{ form.username|add_class:"form-control" }}
-            {% if form.username.errors %}
-              <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label">名稱</label>
-            {{ form.name|add_class:"form-control" }}
-            {% if form.name.errors %}
-              <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label">密碼</label>
-            {{ form.password1|add_class:"form-control" }}
-            {% if form.password1.errors %}
-              <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label">再次確認密碼</label>
-            {{ form.password2|add_class:"form-control" }}
-            {% if form.password2.errors %}
-              <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <button type="submit" class="btn btn-primary w-100">建立員工帳號</button>
-        </form>
-      </div>
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    {% if workers %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle" id="workerTable">
+        <thead class="table-light worker-table-head">
+          <tr class="filter-row header-row">
+            <th class="text-center align-top" style="width: 60px;">
+              序號
+            </th>
+            <th>
+              <div class="filter-label">帳號</div>
+              <input type="text" class="form-control form-control-sm column-filter" data-field="username" placeholder="篩選帳號">
+            </th>
+            <th>
+              <div class="filter-label">名稱</div>
+              <input type="text" class="form-control form-control-sm column-filter" data-field="name" placeholder="篩選名稱">
+            </th>
+            <th>
+              <div class="filter-label">真實姓名</div>
+              <input type="text" class="form-control form-control-sm column-filter" data-field="real_name" placeholder="篩選真實姓名">
+            </th>
+            <th>
+              <div class="filter-label">年齡</div>
+              <input type="text" class="form-control form-control-sm column-filter" data-field="age" placeholder="篩選年齡">
+            </th>
+            <th class="text-center align-top">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for worker in workers %}
+          <tr data-worker-id="{{ worker.profile.id }}"
+              data-worker-username="{{ worker.username }}"
+              data-worker-name="{{ worker.display_name }}"
+              data-worker-real-name="{{ worker.real_name }}"
+              data-worker-age="{{ worker.age }}">
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ worker.username }}</td>
+            <td>
+              <a href="{% url 'users:worker_detail' worker.profile.id %}">
+                {{ worker.display_name|default:worker.username }}
+              </a>
+            </td>
+            <td>{{ worker.real_name|default:"-" }}</td>
+            <td>{{ worker.age }}</td>
+            <td class="text-center">
+              <form method="post" action="{% url 'users:delete_worker' %}" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="profile_id" value="{{ worker.profile.id }}">
+                <button type="button" class="btn btn-outline-danger btn-sm delete-worker"
+                        data-worker-name="{{ worker.display_name|default:worker.username }}">
+                  刪除
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-  </div>
-
-  <div class="col-lg-6">
-    <div class="card shadow-sm">
-      <div class="card-header bg-light">
-        <strong>員工清單</strong>
-      </div>
-      <div class="card-body p-0">
-        {% if workers %}
-        <div class="table-responsive">
-          <table class="table table-hover mb-0 align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>帳號</th>
-                <th>名稱</th>
-                <th class="text-center">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for worker in workers %}
-              <tr data-worker-id="{{ worker.id }}">
-                <td>{{ worker.user.username }}</td>
-                <td>{{ worker.name }}</td>
-                <td class="text-center">
-                  <button type="button" class="btn btn-outline-primary btn-sm edit-worker"
-                          data-worker-id="{{ worker.id }}"
-                          data-worker-name="{{ worker.name }}">
-                    編輯
-                  </button>
-                  <form method="post" action="{% url 'users:delete_worker' %}" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="profile_id" value="{{ worker.id }}">
-                    <button type="button" class="btn btn-outline-danger btn-sm delete-worker"
-                            data-worker-name="{{ worker.name|default:worker.user.username }}">
-                      刪除
-                    </button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-        <div class="p-3 text-muted">尚無員工帳號。</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="workerEditModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post">
-        {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title">編輯員工</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="update_profile_id" id="editWorkerId">
-          <div class="mb-3">
-            <label class="form-label">名稱</label>
-            <input type="text" name="name" class="form-control" id="editWorkerName">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-          <button type="submit" class="btn btn-primary">儲存</button>
-        </div>
-      </form>
-    </div>
+    {% else %}
+    <div class="p-3 text-muted">尚無員工帳號。</div>
+    {% endif %}
   </div>
 </div>
 
@@ -155,21 +105,53 @@
   </div>
 </div>
 {% endblock %}
+{% block extra_css %}
+<style>
+  .filter-row th {
+    border-bottom: 0 !important;
+    border-right: 1px solid #d1d9e2;
+  }
+  .filter-row th:last-child {
+    border-right: 0;
+  }
+  .filter-label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #2b3a45;
+  }
+  .filter-row .form-control {
+    display: inline-block;
+    width: 130px;
+    background-color: #f7f9fb;
+    border-color: #c7d0da;
+    color: #2b3a45;
+  }
+  .worker-table-head .header-row th {
+    background-color: #d6dde5 !important;
+    color: #2b3a45;
+  }
+  #workerTable th,
+  #workerTable td {
+    border-right: 1px solid #d1d9e2;
+  }
+  #workerTable th:last-child,
+  #workerTable td:last-child {
+    border-right: 0;
+  }
+  .filter-row .form-control {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+  }
+  .filter-row .form-control::placeholder {
+    color: #8e9aaa;
+  }
+  #workerTable tbody tr:hover {
+    background-color: #f3f6f9;
+  }
+</style>
+{% endblock %}
 {% block extra_js %}
 <script>
-  document.querySelectorAll(".edit-worker").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.workerId;
-      const name = btn.dataset.workerName || "";
-      const idInput = document.getElementById("editWorkerId");
-      const nameInput = document.getElementById("editWorkerName");
-      if (!idInput || !nameInput) return;
-      idInput.value = id;
-      nameInput.value = name;
-      bootstrap.Modal.getOrCreateInstance(document.getElementById("workerEditModal")).show();
-    });
-  });
-
   document.querySelectorAll(".delete-worker").forEach((btn) => {
     btn.addEventListener("click", () => {
       const row = btn.closest("tr");
@@ -182,6 +164,29 @@
       nameText.textContent = name;
       bootstrap.Modal.getOrCreateInstance(document.getElementById("workerDeleteModal")).show();
     });
+  });
+
+  const rows = document.querySelectorAll("#workerTable tbody tr");
+  const columnFilters = document.querySelectorAll(".column-filter");
+  const applyFilters = () => {
+    const filters = {};
+    columnFilters.forEach((input) => {
+      const value = input.value.trim().toLowerCase();
+      if (value) {
+        filters[input.dataset.field] = value;
+      }
+    });
+    rows.forEach((row) => {
+      const match = Object.entries(filters).every(([field, value]) => {
+        const key = `worker${field.charAt(0).toUpperCase()}${field.slice(1).replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`;
+        const dataValue = (row.dataset[key] || "").toLowerCase();
+        return dataValue.includes(value);
+      });
+      row.classList.toggle("d-none", !match);
+    });
+  };
+  columnFilters.forEach((input) => {
+    input.addEventListener("input", applyFilters);
   });
 </script>
 {% endblock %}

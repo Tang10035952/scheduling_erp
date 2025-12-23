@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path, include, reverse_lazy
 from django.views.generic.base import RedirectView
 
@@ -24,3 +26,6 @@ urlpatterns = [
     path('scheduling/', include('scheduling.urls')), # 排班
     path('', RedirectView.as_view(url=reverse_lazy('users:login')), name='root'), # 根目錄導向登入頁面
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

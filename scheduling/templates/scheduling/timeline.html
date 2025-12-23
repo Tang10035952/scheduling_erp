@@ -45,6 +45,16 @@
     text-align: center;
 }
 
+.blink-warning {
+    animation: blink-warning 1.2s ease-in-out infinite;
+}
+
+@keyframes blink-warning {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
 .timeline-grid-header {
     display: grid;
     grid-template-columns: repeat(16, 1fr);
@@ -381,6 +391,9 @@
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <h2 class="mb-1">{{ page_title|default:"員工班表" }}</h2>
 </div>
+{% if show_profile_warning %}
+<div class="alert alert-warning blink-warning">尚未填寫基本資料</div>
+{% endif %}
 {% if schedule_window_start and schedule_window_end %}
 <div class="alert alert-info py-2 mb-3">
     目前可排班期間：{{ schedule_window_start|date:"Y-m-d" }} ~ {{ schedule_window_end|date:"Y-m-d" }}

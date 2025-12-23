@@ -5,8 +5,13 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3">
   <h2 class="mb-0">員工基本資料</h2>
-  <a class="btn btn-outline-secondary" href="{% url 'users:create_worker' %}">返回員工清單</a>
+  {% if is_manager_view %}
+    <a class="btn btn-outline-secondary" href="{% url 'users:create_worker' %}">返回員工清單</a>
+  {% endif %}
 </div>
+{% if show_profile_warning %}
+  <div class="alert alert-warning blink-warning">尚未完成基本資料</div>
+{% endif %}
 
 {% if messages %}
   {% for message in messages %}
@@ -55,7 +60,7 @@
         </div>
         {% endif %}
       </div>
-      {% if not is_create %}
+      {% if not is_create and is_manager_view %}
       <div class="row g-3 mt-1">
         <div class="col-md-6 d-flex gap-2">
           <button type="button" class="btn btn-outline-primary btn-sm" id="resetPasswordBtn">設定臨時密碼</button>
@@ -200,7 +205,7 @@
       <hr class="my-4">
       <h6 class="mb-2">附件上傳</h6>
       <div class="text-danger small mb-3">上傳時避免圖片反光，確保文字清晰可辨。檔案格式限 JPG/PNG/PDF/HEIC，單檔最大 10MB。</div>
-      <div class="row g-3" data-upload-form="{% if not is_create %}true{% else %}false{% endif %}" data-profile-id="{{ profile.id|default:'' }}">
+      <div class="row g-3" data-upload-form="{% if not is_create %}true{% else %}false{% endif %}" data-profile-id="{{ profile.id|default:'' }}" data-upload-url="{{ upload_url|default:'' }}" data-delete-url="{{ delete_url|default:'' }}">
         <div class="col-md-6">
           <label class="form-label">身分證正面{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
           <label for="{{ form.id_card_front.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
@@ -316,6 +321,14 @@
   .upload-input {
     display: none;
   }
+  .blink-warning {
+    animation: blink-warning 1.2s ease-in-out infinite;
+  }
+  @keyframes blink-warning {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
   .preview-frame {
     border: 0;
     width: 100%;
@@ -386,6 +399,8 @@
   const saveBtn = document.getElementById("saveWorkerBtn");
   const isCreate = uploadSection && uploadSection.dataset.uploadForm !== "true";
   const profileId = uploadSection ? uploadSection.dataset.profileId : "";
+  const uploadUrl = uploadSection ? uploadSection.dataset.uploadUrl : "";
+  const deleteUrl = uploadSection ? uploadSection.dataset.deleteUrl : "";
   const previewModalEl = document.getElementById("documentPreviewModal");
   const previewBody = document.getElementById("documentPreviewBody");
   const downloadBtn = document.getElementById("documentDownloadBtn");
@@ -492,7 +507,7 @@
     pendingUploads += 1;
     updateSaveState();
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `/users/create-worker/${profileId}/upload/`);
+    xhr.open("POST", uploadUrl || `/users/create-worker/${profileId}/upload/`);
     xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
     xhr.upload.addEventListener("progress", (event) => {
       if (!event.lengthComputable || !progressBar) return;
@@ -566,7 +581,7 @@
     const category = button.getAttribute("data-category");
     const preview = button.closest(".upload-preview");
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `/users/create-worker/${profileId}/delete-document/`);
+    xhr.open("POST", deleteUrl || `/users/create-worker/${profileId}/delete-document/`);
     xhr.setRequestHeader("X-CSRFToken", getCookie("csrftoken"));
     xhr.addEventListener("load", () => {
       let ok = false;

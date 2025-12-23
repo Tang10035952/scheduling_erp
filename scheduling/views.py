@@ -830,6 +830,7 @@ def worker_schedule(request):
     shift_create_url = reverse("scheduling:worker_shift_create")
     shift_update_url = reverse("scheduling:worker_shift_update")
     shift_delete_url = reverse("scheduling:worker_shift_delete")
+    show_profile_warning = profile.missing_required_info()
 
     return render(
         request,
@@ -855,6 +856,7 @@ def worker_schedule(request):
             "hide_store_info": False,
             "worker_edit_closed": not allow_worker_edit_shifts,
             "can_manage_store": False,
+            "show_profile_warning": show_profile_warning,
         },
     )
 

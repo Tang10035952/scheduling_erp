@@ -49,6 +49,29 @@ class UserProfile(models.Model):
         if (today.month, today.day) < (self.birthday.month, self.birthday.day):
             years -= 1
         return years
+
+    def missing_required_info(self):
+        required_fields = [
+            self.name,
+            self.real_name,
+            self.gender,
+            self.birthday,
+            self.id_number,
+            self.marital_status,
+            self.education,
+            self.contact_address,
+            self.registered_address,
+            self.mobile_phone,
+            self.emergency_contact_name,
+            self.emergency_contact_relation,
+            self.emergency_contact_phone,
+            self.work_experience,
+        ]
+        if any(not value for value in required_fields):
+            return True
+        if self.education == "其他" and not self.education_other:
+            return True
+        return False
     
     def __str__(self):
         return self.display_name()

@@ -51,6 +51,10 @@ def post_login(request):
     return redirect("scheduling:worker_schedule")
 
 
+def _profile_missing_required_info(profile):
+    return profile.missing_required_info()
+
+
 class RoleLoginView(LoginView):
     redirect_authenticated_user = True
 
@@ -145,6 +149,7 @@ def create_worker(request):
     )
     worker_rows = []
     for worker in workers:
+        missing_info = worker.missing_required_info()
         age = worker.age()
         worker_rows.append(
             {
@@ -153,6 +158,7 @@ def create_worker(request):
                 "display_name": worker.name,
                 "real_name": worker.real_name,
                 "age": age if age is not None else "-",
+                "missing_info": missing_info,
             }
         )
 
@@ -305,6 +311,7 @@ def worker_create(request):
         {
             "form": form,
             "is_create": True,
+            "is_manager_view": True,
         },
     )
 
@@ -388,6 +395,100 @@ def worker_detail(request, profile_id):
             "profile": profile,
             "documents": documents,
             "is_create": False,
+            "is_manager_view": True,
+            "upload_url": f"/users/create-worker/{profile.id}/upload/",
+            "delete_url": f"/users/create-worker/{profile.id}/delete-document/",
+        },
+    )
+
+
+@login_required
+def worker_profile(request):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return redirect("users:login")
+
+    if profile.is_manager():
+        return redirect("users:create_worker")
+
+    if request.method == "POST":
+        form = ManagerWorkerUpdateForm(request.POST, request.FILES)
+        if form.is_valid():
+            profile.name = form.cleaned_data["display_name"].strip()
+            profile.real_name = form.cleaned_data["real_name"].strip()
+            profile.gender = form.cleaned_data["gender"]
+            profile.birthday = form.cleaned_data["birthday"]
+            profile.id_number = form.cleaned_data["id_number"].strip()
+            profile.marital_status = form.cleaned_data["marital_status"]
+            profile.education = form.cleaned_data["education"]
+            profile.education_other = form.cleaned_data.get("education_other", "").strip()
+            profile.contact_address = form.cleaned_data["contact_address"].strip()
+            profile.registered_address = form.cleaned_data["registered_address"].strip()
+            profile.mobile_phone = form.cleaned_data["mobile_phone"].strip()
+            profile.emergency_contact_name = form.cleaned_data["emergency_contact_name"].strip()
+            profile.emergency_contact_relation = form.cleaned_data["emergency_contact_relation"].strip()
+            profile.emergency_contact_phone = form.cleaned_data["emergency_contact_phone"].strip()
+            profile.work_experience = form.cleaned_data["work_experience"].strip()
+            profile.save()
+
+            _save_worker_document(profile, request.FILES.get("id_card_front"), "id_card_front")
+            _save_worker_document(profile, request.FILES.get("id_card_back"), "id_card_back")
+            _save_worker_document(profile, request.FILES.get("driver_license_file"), "driver_license")
+            _save_worker_document(profile, request.FILES.get("bankbook_file"), "bankbook")
+
+            messages.success(request, "基本資料已更新。")
+            return redirect("users:worker_profile")
+    else:
+        form = ManagerWorkerUpdateForm(
+            initial={
+                "display_name": profile.name,
+                "real_name": profile.real_name,
+                "gender": profile.gender,
+                "birthday": profile.birthday,
+                "id_number": profile.id_number,
+                "marital_status": profile.marital_status,
+                "education": "其他" if profile.education == "Other" else profile.education,
+                "education_other": profile.education_other,
+                "contact_address": profile.contact_address,
+                "registered_address": profile.registered_address,
+                "mobile_phone": profile.mobile_phone,
+                "emergency_contact_name": profile.emergency_contact_name,
+                "emergency_contact_relation": profile.emergency_contact_relation,
+                "emergency_contact_phone": profile.emergency_contact_phone,
+                "work_experience": profile.work_experience,
+            }
+        )
+
+    documents = {
+        "id_card_front": _document_if_exists(
+            profile.documents.filter(category="id_card_front").first()
+        ),
+        "id_card_back": _document_if_exists(
+            profile.documents.filter(category="id_card_back").first()
+        ),
+        "driver_license": _document_if_exists(
+            profile.documents.filter(category="driver_license").first()
+        ),
+        "bankbook": _document_if_exists(
+            profile.documents.filter(category="bankbook").first()
+        ),
+    }
+
+    show_profile_warning = _profile_missing_required_info(profile)
+
+    return render(
+        request,
+        "users/worker_detail.html",
+        {
+            "form": form,
+            "profile": profile,
+            "documents": documents,
+            "is_create": False,
+            "is_manager_view": False,
+            "upload_url": "/users/profile/upload/",
+            "delete_url": "/users/profile/delete-document/",
+            "show_profile_warning": show_profile_warning,
         },
     )
 
@@ -436,12 +537,81 @@ def upload_worker_document(request, profile_id):
 
 
 @login_required
+@require_POST
+def upload_worker_document_self(request):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    if profile.is_manager():
+        return JsonResponse({"ok": False, "error": "權限不足"}, status=403)
+
+    category = request.POST.get("category")
+    file_obj = request.FILES.get("file")
+    if not category or not file_obj:
+        return JsonResponse({"ok": False, "error": "缺少檔案或類別"}, status=400)
+
+    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}
+    if category not in allowed_categories:
+        return JsonResponse({"ok": False, "error": "檔案類別錯誤"}, status=400)
+
+    if category in {"id_card_front", "id_card_back"}:
+        if not _is_allowed_image_upload(file_obj):
+            return JsonResponse({"ok": False, "error": "身分證檔案需為 JPG/PNG/HEIC"}, status=400)
+    else:
+        if not _is_allowed_upload(file_obj, allow_pdf=True):
+            return JsonResponse({"ok": False, "error": "檔案格式需為 JPG/PNG/HEIC/PDF"}, status=400)
+    if file_obj.size > 10 * 1024 * 1024:
+        return JsonResponse({"ok": False, "error": "檔案大小不可超過 10MB"}, status=400)
+
+    _save_worker_document(profile, file_obj, category)
+    document = profile.documents.filter(category=category).first()
+    if not document:
+        return JsonResponse({"ok": False, "error": "檔案儲存失敗"}, status=400)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "file_url": document.file.url,
+            "file_name": document.file.name,
+        }
+    )
+
+
+@login_required
 @user_passes_test(is_manager)
 @require_POST
 def delete_worker_document(request, profile_id):
     profile = UserProfile.objects.filter(id=profile_id, role="worker").first()
     if not profile:
         return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    category = request.POST.get("category")
+    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}
+    if category not in allowed_categories:
+        return JsonResponse({"ok": False, "error": "檔案類別錯誤"}, status=400)
+
+    document = profile.documents.filter(category=category).first()
+    if not document:
+        return JsonResponse({"ok": True})
+
+    if document.file:
+        document.file.delete(save=False)
+    document.delete()
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_POST
+def delete_worker_document_self(request):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    if profile.is_manager():
+        return JsonResponse({"ok": False, "error": "權限不足"}, status=403)
 
     category = request.POST.get("category")
     allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}

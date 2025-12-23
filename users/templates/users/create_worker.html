@@ -56,9 +56,12 @@
             <td class="text-center">{{ forloop.counter }}</td>
             <td>{{ worker.username }}</td>
             <td>
-              <a href="{% url 'users:worker_detail' worker.profile.id %}">
+              <a href="{% url 'users:worker_detail' worker.profile.id %}" class="worker-name-link">
                 {{ worker.display_name|default:worker.username }}
               </a>
+              {% if worker.missing_info %}
+                <span class="badge badge-warn-soft text-dark rounded-pill ms-2">尚未完成基本資料</span>
+              {% endif %}
             </td>
             <td>{{ worker.real_name|default:"-" }}</td>
             <td>{{ worker.age }}</td>
@@ -137,6 +140,23 @@
   #workerTable th:last-child,
   #workerTable td:last-child {
     border-right: 0;
+  }
+  .badge.rounded-pill {
+    font-weight: 600;
+  }
+  .badge-warn-soft {
+    background-color: #fff3bf;
+    border: 1px solid #ffe69c;
+  }
+  .worker-name-link {
+    color: #0b5ed7;
+    text-decoration: none;
+    font-weight: 400;
+  }
+  .worker-name-link:hover {
+    color: #084298;
+    text-decoration: underline;
+    font-weight: 600;
   }
   .filter-row .form-control {
     font-size: 0.8rem;

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}員工首頁{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header bg-light">
+    <strong>歡迎，{{ profile.name|default:profile.user.username }}</strong>
+  </div>
+  <div class="card-body">
+    <p class="mb-2">你已成功登入，請洽店長取得班表資訊或查看公告。</p>
+    <p class="text-muted mb-0">若需要修改密碼，請聯繫店長或管理員。</p>
+  </div>
+</div>
+{% endblock %}

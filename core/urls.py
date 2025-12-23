@@ -21,7 +21,6 @@ from django.views.generic.base import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/', include('users.urls')), # 登入/登出
-    path('availability/', include('availability.urls')), # 員工意願
     path('scheduling/', include('scheduling.urls')), # 排班
     path('', RedirectView.as_view(url=reverse_lazy('users:login')), name='root'), # 根目錄導向登入頁面
 ]

@@ -78,6 +78,12 @@
             transform: scale(1.02);
             transition: 0.1s ease;
         }
+
+        .alert-error {
+            background-color: #fde2e2;
+            border-color: #f5b5b5;
+            color: #b42318;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -94,17 +100,24 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             {% if user.is_authenticated %}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'availability:home' %}">可上班意願</a>
-                </li>
                 {% if user.userprofile.is_manager %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'scheduling:list' %}">總班表</a>
+                    <a class="nav-link" href="{% url 'scheduling:timeline' %}?view=week">員工班表</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:create_worker' %}">員工管理</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'scheduling:manage_window' %}">設定</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'scheduling:worker_schedule' %}">可上班時段</a>
                 </li>
                 {% endif %}
             </ul>
             <span class="navbar-text me-3">
-                Hi, {{ user.get_full_name|default:user.username }}
+                Hi, {{ user.userprofile.name|default:user.username }}
             </span>
             <a class="btn btn-outline-light btn-sm" href="{% url 'users:logout' %}">登出</a>
             {% endif %}

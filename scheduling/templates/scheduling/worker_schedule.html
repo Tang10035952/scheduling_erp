@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% block title %}我的可上班時段{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <h2 class="mb-0">我的可上班時段</h2>
+    <small class="text-muted">範圍：{{ start_date|date:"Y-m-d" }} ~ {{ end_date|date:"Y-m-d" }}{% if not has_manager_window %}（店長未設定，預設當週）{% endif %}</small>
+</div>
+
+<div id="availAlert" class="alert alert-danger d-none" role="alert"></div>
+<div id="availSuccess" class="alert alert-success d-none" role="alert">已更新</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light">
+    填寫可上班時段
+  </div>
+  <div class="card-body">
+    <form id="availForm" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">日期</label>
+        <input class="form-control" type="date" id="availDate" name="date" value="{{ start_date|date:'Y-m-d' }}" min="{{ start_date|date:'Y-m-d' }}" max="{{ end_date|date:'Y-m-d' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">開始時間</label>
+        <div class="input-group">
+          <select id="availStartHour" class="form-select"></select>
+          <span class="input-group-text">:</span>
+          <select id="availStartMinute" class="form-select"></select>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">結束時間</label>
+        <div class="input-group">
+          <select id="availEndHour" class="form-select"></select>
+          <span class="input-group-text">:</span>
+          <select id="availEndMinute" class="form-select"></select>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">新增</button>
+      </div>
+    </form>
+    <div id="availDayList" class="d-flex flex-wrap gap-2 mt-3"></div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <strong class="mb-0">我填寫的時段</strong>
+      </div>
+      <div class="card-body p-0">
+        {% if entry_rows %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" id="availTable">
+            <thead class="table-light">
+              <tr>
+                <th>日期</th>
+                <th>時間</th>
+                <th class="text-center" style="width: 140px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in entry_rows %}
+              <tr data-kind="{{ row.kind }}" data-id="{{ row.id }}" data-date="{{ row.date }}" data-start="{{ row.start }}" data-end="{{ row.end }}">
+                <td>{{ row.date }}</td>
+                <td>{{ row.start }} - {{ row.end }}</td>
+                <td class="text-center">
+                  <span class="badge bg-{% if row.kind == 'shift' %}secondary{% else %}light text-dark{% endif %} me-2">{{ row.label }}</span>
+                  <button type="button" class="btn btn-outline-primary btn-sm me-2 edit-entry">編輯</button>
+                  <button type="button" class="btn btn-outline-danger btn-sm delete-entry">刪除</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="p-3 text-muted">尚未填寫。</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal fade" id="availabilityModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">編輯可上班時段</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="availModalAlert" class="alert alert-danger d-none" role="alert"></div>
+        <p><strong>日期：</strong> <span id="availModalDate"></span></p>
+        <div class="row g-2">
+          <div class="col">
+            <label>開始時間</label>
+            <div class="input-group">
+              <select id="modalStartHour" class="form-select"></select>
+              <span class="input-group-text">:</span>
+              <select id="modalStartMinute" class="form-select"></select>
+            </div>
+          </div>
+          <div class="col">
+            <label>結束時間</label>
+            <div class="input-group">
+              <select id="modalEndHour" class="form-select"></select>
+              <span class="input-group-text">:</span>
+              <select id="modalEndMinute" class="form-select"></select>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="availModalId">
+        <input type="hidden" id="availModalKind">
+      </div>
+
+      <div class="modal-footer">
+        <button id="availModalSave" class="btn btn-primary">更新</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ availability_items|json_script:"availabilityData" }}
+{{ shift_items|json_script:"shiftData" }}
+<script>
+const alertBox = document.getElementById("availAlert");
+const successBox = document.getElementById("availSuccess");
+let availabilityData = JSON.parse(document.getElementById("availabilityData").textContent || "[]");
+const shiftData = JSON.parse(document.getElementById("shiftData").textContent || "[]");
+const availDayList = document.getElementById("availDayList");
+const modalAlert = document.getElementById("availModalAlert");
+
+function buildTimeOptions(selectEl) {
+  const pad = (value) => String(value).padStart(2, "0");
+  selectEl.innerHTML = "";
+  for (let hour = 8; hour <= 23; hour += 1) {
+    const opt = document.createElement("option");
+    opt.value = pad(hour);
+    opt.textContent = pad(hour);
+    selectEl.appendChild(opt);
+  }
+}
+
+function buildMinuteOptions(selectEl) {
+  selectEl.innerHTML = "";
+  ["00", "15", "30", "45"].forEach((minute) => {
+    const opt = document.createElement("option");
+    opt.value = minute;
+    opt.textContent = minute;
+    selectEl.appendChild(opt);
+  });
+}
+
+function timeToMinutes(timeStr) {
+  const [h, m] = timeStr.split(":").map(Number);
+  return (h * 60) + m;
+}
+
+function setTimeSelects(prefix, timeStr) {
+  const [hour, minute] = timeStr.split(":");
+  document.getElementById(`${prefix}Hour`).value = hour;
+  document.getElementById(`${prefix}Minute`).value = minute;
+}
+
+function getTimeValue(prefix) {
+  const hour = document.getElementById(`${prefix}Hour`).value;
+  const minute = document.getElementById(`${prefix}Minute`).value;
+  if (!hour || !minute) return null;
+  return `${hour}:${minute}`;
+}
+
+function showError(msg) {
+  if (alertBox) {
+    alertBox.textContent = msg;
+    alertBox.classList.remove("d-none");
+  }
+  if (successBox) successBox.classList.add("d-none");
+}
+
+function showSuccess(msg = "已更新") {
+  if (successBox) {
+    successBox.textContent = msg;
+    successBox.classList.remove("d-none");
+  }
+  if (alertBox) alertBox.classList.add("d-none");
+}
+
+function showModalError(msg) {
+  if (!modalAlert) return;
+  modalAlert.textContent = msg;
+  modalAlert.classList.remove("d-none");
+}
+
+function hideModalError() {
+  if (!modalAlert) return;
+  modalAlert.textContent = "";
+  modalAlert.classList.add("d-none");
+}
+
+function renderDayAvailabilities(dateStr) {
+  if (!availDayList) return;
+  availDayList.innerHTML = "";
+  const items = availabilityData.filter((item) => item.date === dateStr);
+  const shifts = shiftData.filter((item) => item.date === dateStr);
+  items.forEach((item) => {
+    const badge = document.createElement("span");
+    badge.className = "badge bg-secondary";
+    badge.textContent = `${item.start}-${item.end}`;
+    availDayList.appendChild(badge);
+  });
+  shifts.forEach((item) => {
+    const badge = document.createElement("span");
+    badge.className = "badge bg-dark";
+    badge.textContent = `${item.start}-${item.end}`;
+    availDayList.appendChild(badge);
+  });
+}
+
+[
+  "availStartHour",
+  "availEndHour",
+  "modalStartHour",
+  "modalEndHour",
+].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) buildTimeOptions(el);
+});
+
+[
+  "availStartMinute",
+  "availEndMinute",
+  "modalStartMinute",
+  "modalEndMinute",
+].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) buildMinuteOptions(el);
+});
+
+setTimeSelects("availStart", "10:00");
+setTimeSelects("availEnd", "14:00");
+
+document.getElementById("availForm")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const date = document.getElementById("availDate").value;
+  const start = getTimeValue("availStart");
+  const end = getTimeValue("availEnd");
+  if (!date || !start || !end) {
+    showError("請填寫完整日期與時間");
+    return;
+  }
+  if (timeToMinutes(end) <= timeToMinutes(start)) {
+    showError("結束時間需晚於開始時間");
+    return;
+  }
+  fetch("{% url 'scheduling:availability_create' %}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date, start, end }),
+  })
+    .then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data.ok === false) {
+        throw new Error(data.error || "新增失敗，請再試一次");
+      }
+      showSuccess("已新增");
+      setTimeout(() => window.location.reload(), 400);
+    })
+    .catch((err) => showError(err.message || "新增失敗，請再試一次"));
+});
+
+document.querySelectorAll(".edit-entry").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    const row = e.target.closest("tr");
+    if (!row) return;
+    document.getElementById("availModalId").value = row.dataset.id;
+    document.getElementById("availModalKind").value = row.dataset.kind;
+    document.getElementById("availModalDate").innerText = row.dataset.date;
+    setTimeSelects("modalStart", row.dataset.start);
+    setTimeSelects("modalEnd", row.dataset.end);
+    hideModalError();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("availabilityModal")).show();
+  });
+});
+
+document.getElementById("availModalSave")?.addEventListener("click", () => {
+  const id = document.getElementById("availModalId").value;
+  const kind = document.getElementById("availModalKind").value;
+  const start = getTimeValue("modalStart");
+  const end = getTimeValue("modalEnd");
+  if (!id || !start || !end) {
+    showModalError("請填寫完整時間");
+    return;
+  }
+  if (timeToMinutes(end) <= timeToMinutes(start)) {
+    showModalError("結束時間需晚於開始時間");
+    return;
+  }
+  const updateUrl = kind === "shift"
+    ? "{% url 'scheduling:worker_shift_update' %}"
+    : "{% url 'scheduling:availability_update' %}";
+  fetch(updateUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, start, end }),
+  })
+    .then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data.ok === false) {
+        throw new Error(data.error || "更新失敗，請再試一次");
+      }
+      return data;
+    })
+    .then(() => {
+      const row = document.querySelector(`tr[data-id="${id}"]`);
+      if (row) {
+        row.dataset.start = start;
+        row.dataset.end = end;
+        row.querySelector("td:nth-child(2)").textContent = `${start} - ${end}`;
+      }
+      if (kind === "shift") {
+        const item = shiftData.find((entry) => String(entry.id) === String(id));
+        if (item) {
+          item.start = start;
+          item.end = end;
+        }
+      } else {
+        const item = availabilityData.find((entry) => String(entry.id) === String(id));
+        if (item) {
+          item.start = start;
+          item.end = end;
+        }
+      }
+      const currentDate = document.getElementById("availDate")?.value;
+      if (currentDate) {
+        renderDayAvailabilities(currentDate);
+      }
+      const modalEl = document.getElementById("availabilityModal");
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+      showSuccess("已更新");
+    })
+    .catch((err) => showModalError(err.message || "更新失敗，請再試一次"));
+});
+
+document.querySelectorAll(".delete-entry").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    const row = e.target.closest("tr");
+    const id = row?.dataset.id;
+    if (!id) return;
+    const kind = row.dataset.kind;
+    const deleteUrl = kind === "shift"
+      ? "{% url 'scheduling:worker_shift_delete' %}"
+      : "{% url 'scheduling:availability_delete' %}";
+    fetch(deleteUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || data.ok === false) {
+          throw new Error(data.error || "刪除失敗，請再試一次");
+        }
+        row.remove();
+        showSuccess("已刪除");
+        if (kind === "shift") {
+          const idx = shiftData.findIndex((item) => String(item.id) === String(id));
+          if (idx >= 0) {
+            shiftData.splice(idx, 1);
+          }
+        } else {
+          availabilityData = availabilityData.filter((item) => String(item.id) !== String(id));
+        }
+        const currentDate = document.getElementById("availDate")?.value;
+        if (currentDate) {
+          renderDayAvailabilities(currentDate);
+        }
+      })
+      .catch((err) => showError(err.message || "刪除失敗，請再試一次"));
+  });
+});
+
+const availDateInput = document.getElementById("availDate");
+if (availDateInput) {
+  renderDayAvailabilities(availDateInput.value);
+  availDateInput.addEventListener("change", () => {
+    renderDayAvailabilities(availDateInput.value);
+  });
+}
+</script>
+{% endblock %}

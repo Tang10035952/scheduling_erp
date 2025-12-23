@@ -4,12 +4,17 @@ from datetime import date, time, timedelta
 import random
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+os.environ.setdefault('DB_NAME', 'scheduling_erp_db')
+os.environ.setdefault('DB_USER', 'scheduling_erp_admin')
+os.environ.setdefault('DB_PASSWORD', 'scheduling_erp_password')
+os.environ.setdefault('DB_HOST', '35.221.202.58')
+os.environ.setdefault('DB_PORT', '3306')
 django.setup()
 
 from django.contrib.auth.models import User
+from django.db import connection
 from users.models import UserProfile
-from availability.models import WorkAvailability
-from scheduling.models import Shift
+from scheduling.models import Shift, SchedulingWindow, WorkAvailability, Store
 
 
 # -------------------------------
@@ -20,11 +25,31 @@ def reset_database():
 
     WorkAvailability.objects.all().delete()
     Shift.objects.all().delete()
+    SchedulingWindow.objects.all().delete()
+    Store.objects.all().delete()
 
     UserProfile.objects.all().delete()
     User.objects.exclude(is_superuser=True).delete()
 
     print("✔ Database cleaned.\n")
+
+
+def drop_legacy_profile_columns():
+    print("🧩 Checking legacy userprofile columns...")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE 'users_userprofile'")
+            if not cursor.fetchone():
+                print("ℹ users_userprofile table missing, skip.")
+                return
+            cursor.execute("SHOW COLUMNS FROM users_userprofile LIKE 'registered_by_email'")
+            if cursor.fetchone():
+                cursor.execute("ALTER TABLE users_userprofile DROP COLUMN registered_by_email")
+                print("✔ Dropped registered_by_email column.")
+            else:
+                print("ℹ registered_by_email column not found, skip.")
+    except Exception as err:
+        print(f"⚠ Failed to adjust legacy schema: {err}")
 
 
 # -------------------------------
@@ -35,12 +60,13 @@ def create_manager():
     manager = User.objects.create_user(
         username="manager",
         password="123456",
-        first_name="店長",
-        last_name="小王",
+        first_name="",
+        last_name="",
     )
     UserProfile.objects.create(
         user=manager,
-        role="manager"
+        role="manager",
+        name="店長 李強",
     )
     return manager
 
@@ -48,114 +74,147 @@ def create_manager():
 # -------------------------------
 # Step 3：建立員工帳號
 # -------------------------------
-def create_workers(n=12):
-    print(f"👥 Creating {n} workers...")
+FAKE_WORKERS = [
+    "陳志明",
+    "林美玲",
+    "張建宏",
+    "王雅雯",
+    "李冠宇",
+    "黃心怡",
+    "吳宇軒",
+    "周佳穎",
+]
+
+def create_workers(stores):
+    print(f"👥 Creating {len(FAKE_WORKERS)} workers...")
     workers = []
 
-    for i in range(1, n + 1):
+    for i, name in enumerate(FAKE_WORKERS, start=1):
         user = User.objects.create_user(
             username=f"worker{i}",
             password="123456",
-            first_name=f"員工{i}",
-            last_name="測試"
+            first_name="",
+            last_name="",
         )
         profile = UserProfile.objects.create(
             user=user,
-            role="worker"
+            role="worker",
+            name=name,
+            primary_store=random.choice(stores),
         )
         workers.append(profile)
 
     return workers
 
 
-# -------------------------------
-# Step 4：建立可上班意願（含 available 欄位）
-# -------------------------------
+def create_stores():
+    print("🏬 Creating stores...")
+    stores = [
+        Store.objects.create(name="林森店", color="#cfe8ff"),
+        Store.objects.create(name="中正店", color="#ffe4c4"),
+    ]
+    return stores
+
 
 SHIFT_OPTIONS = [
     (time(9, 0), time(13, 0)),   # 早班
     (time(12, 0), time(16, 0)),  # 中班
     (time(17, 0), time(22, 0)),  # 晚班
 ]
-
-def create_availability(workers):
-    print("🗓 Generating availability...")
-
-    today = date.today()
-
-    for worker in workers:
-        for d in range(7):  # 一週
-            day = today + timedelta(days=d)
-
-            # 70% 機率可上班
-            if random.random() < 0.7:
-                start, end = random.choice(SHIFT_OPTIONS)
-
-                WorkAvailability.objects.create(
-                    employee=worker,
-                    date=day,
-                    start_time=start,
-                    end_time=end,
-                    available=True,     # ← 這是關鍵！
-                )
-            else:
-                # 不可上班也要建立紀錄，方便 UI 流程測試
-                WorkAvailability.objects.create(
-                    employee=worker,
-                    date=day,
-                    available=False,
-                    start_time=None,
-                    end_time=None,
-                )
-
-    print("✔ Availability generated.\n")
+SHIFT_NOTES = [
+    "",
+    "",
+    "交接提醒",
+    "注意補貨",
+    "新人協助",
+    "客訴跟進",
+    "盤點支援",
+    "臨時調班",
+]
 
 
 # -------------------------------
 # Step 5：依意願自動排班（深色正式班表）
 # -------------------------------
-def create_shifts(workers):
-    print("📅 Creating shifts based on availability...")
+def create_shifts(workers, stores):
+    print("📅 Creating shifts...")
 
     today = date.today()
+    month_start = today.replace(day=1)
+    last_day = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    total_days = last_day.day
 
-    for d in range(7):
-        day = today + timedelta(days=d)
+    for d in range(total_days):
+        day = month_start + timedelta(days=d)
 
-        # 查當天所有可上班的人
-        av_qs = WorkAvailability.objects.filter(date=day, available=True)
+        for worker in workers:
+            if random.random() < 0.45:
+                continue
 
-        if not av_qs.exists():
-            continue
+            shift_count = 2 if random.random() < 0.2 else 1
+            chosen = random.sample(SHIFT_OPTIONS, k=shift_count)
 
-        # 至多排 3 人
-        possible = list(av_qs)
-        pick_num = min(3, len(possible))
-
-        selected_avs = random.sample(possible, pick_num)
-
-        for av in selected_avs:
-            Shift.objects.create(
-                employee=av.employee,
-                date=day,
-                start_time=av.start_time,
-                end_time=av.end_time,
-                is_published=True,
-            )
+            for start, end in chosen:
+                store = None if random.random() < 0.25 else random.choice(stores)
+                Shift.objects.create(
+                    employee=worker,
+                    store=store,
+                    date=day,
+                    start_time=start,
+                    end_time=end,
+                    is_published=True,
+                    note=random.choice(SHIFT_NOTES),
+                )
 
     print("✔ Shifts created.\n")
+
+
+def create_window_and_availability(workers):
+    print("📝 Creating scheduling window and availability...")
+    today = date.today()
+    month_start = today.replace(day=1)
+    last_day = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    SchedulingWindow.objects.create(
+        start_date=month_start,
+        end_date=last_day,
+        allow_worker_view=True,
+    )
+
+    target_date = date(today.year, today.month, 16)
+    for worker in workers:
+        if worker.name == "陳志明":
+            WorkAvailability.objects.create(
+                employee=worker,
+                date=target_date,
+                start_time=time(9, 0),
+                end_time=time(12, 0),
+            )
+            continue
+        if random.random() < 0.6:
+            continue
+        start, end = random.choice(SHIFT_OPTIONS)
+        WorkAvailability.objects.create(
+            employee=worker,
+            date=month_start + timedelta(days=random.randint(0, last_day.day - 1)),
+            start_time=start,
+            end_time=end,
+        )
+
+    print("✔ Window and availability created.\n")
 
 
 # -------------------------------
 # 執行流程
 # -------------------------------
 if __name__ == "__main__":
+    drop_legacy_profile_columns()
     reset_database()
     manager = create_manager()
-    workers = create_workers(12)
-    create_availability(workers)
-    create_shifts(workers)
+    stores = create_stores()
+    workers = create_workers(stores)
+    create_shifts(workers, stores)
+    create_window_and_availability(workers)
 
     print("🎉 Dummy data ready!")
     print("👉 Manager 帳號：manager / 123456")
-    print("👉 Worker 帳號：worker1 ~ worker12 / 123456")
+    print("👉 Worker 帳號：worker1 ~ worker8 / 123456")

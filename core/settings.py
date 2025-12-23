@@ -19,13 +19,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
+def _env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-q3n=7s35zfqx)n!^^60ocxfg!^%g+)#0s_p3*m51)2=tudoj!x'
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-q3n=7s35zfqx)n!^^60ocxfg!^%g+)#0s_p3*m51)2=tudoj!x",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool("DJANGO_DEBUG", True)
 
-ALLOWED_HOSTS = []
+_allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(",") if host.strip()]
 
 
 # Application definition
@@ -39,7 +50,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # 新增的 Apps
     'users',
-    'availability',
     'scheduling',
 ]
 
@@ -66,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'scheduling.context_processors.worker_view_setting',
             ],
         },
     },
@@ -80,11 +91,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'scheduling_erp_db',
-        'USER': 'scheduling_erp_admin',
-        'PASSWORD': 'scheduling_erp_password',
-        'HOST': '104.199.252.177',
-        'PORT': '3306',
+        'NAME': os.getenv('DB_NAME', 'scheduling_erp_db'),
+        'USER': os.getenv('DB_USER', 'scheduling_erp_admin'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'scheduling_erp_password'),
+        'HOST': os.getenv('DB_HOST', '35.221.202.58'),
+        'PORT': os.getenv('DB_PORT', '3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
@@ -122,6 +133,7 @@ USE_TZ = True # 啟用時區支持
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -130,8 +142,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 設定登入/登出導向
 LOGIN_URL = '/users/login/'
-# 成功登入後，導向到 availability App 的 home 視圖
-LOGIN_REDIRECT_URL = 'availability:home' 
+# 成功登入後，導向到排班頁面
+LOGIN_REDIRECT_URL = 'users:post_login'
 
 # Django 登出後跳轉的 URL (可選，但建議設定)
 LOGOUT_REDIRECT_URL = 'users:login'
@@ -141,3 +153,8 @@ STATICFILES_DIRS = [
     # 或者使用 pathlib 寫法 (Python 3.4+):
     # BASE_DIR / 'static', 
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+_csrf_trusted = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _csrf_trusted.split(",") if origin.strip()]

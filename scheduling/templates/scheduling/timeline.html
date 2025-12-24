@@ -178,7 +178,7 @@
     left: 90px;
     background: #f8fafc;
     min-width: 50px;
-    z-index: 1;
+    z-index: 2;
     box-shadow: 2px 0 0 #e5e7eb;
 }
 
@@ -189,7 +189,7 @@
 
 .week-table thead .hours-cell {
     top: 0;
-    z-index: 9;
+    z-index: 10;
 }
 
 .week-table tbody .name-cell {
@@ -197,7 +197,7 @@
 }
 
 .week-table tbody .hours-cell {
-    z-index: 2;
+    z-index: 3;
 }
 
 .shift-line {
@@ -295,7 +295,7 @@
     left: 90px;
     background: #f8fafc;
     min-width: 50px;
-    z-index: 1;
+    z-index: 2;
     box-shadow: 2px 0 0 #e5e7eb;
 }
 
@@ -306,7 +306,7 @@
 
 .month-table thead .hours-cell {
     top: 0;
-    z-index: 5;
+    z-index: 6;
 }
 
 .month-table tbody .name-cell {
@@ -314,7 +314,7 @@
 }
 
 .month-table tbody .hours-cell {
-    z-index: 2;
+    z-index: 3;
 }
 
 .month-scroll {
@@ -751,6 +751,13 @@
         </div>
         {% if can_manage_store %}
         <div class="mt-3">
+          <label>休息時間</label>
+          <select id="m-break" class="form-select"></select>
+          <div class="form-text">依排班時數自動帶入。</div>
+        </div>
+        {% endif %}
+        {% if can_manage_store %}
+        <div class="mt-3">
           <label>店別</label>
           <select id="m-store" class="form-select">
             <option value="">未排定</option>
@@ -797,13 +804,6 @@
           <label>備註</label>
           <input id="m-note" class="form-control" type="text"{% if not can_manage_store %} readonly{% endif %}>
         </div>
-        {% if can_manage_store %}
-        <div class="mt-3">
-          <label>休息時間</label>
-          <select id="m-break" class="form-select"></select>
-          <div class="form-text">以半小時為單位，最多 2 小時。</div>
-        </div>
-        {% endif %}
 
         <input type="hidden" id="m-id">
         <input type="hidden" id="m-employee-id">
@@ -948,7 +948,16 @@ buildMinuteOptions(document.getElementById("m-end-minute"));
 const breakSelect = document.getElementById("m-break");
 if (breakSelect) {
     buildBreakOptions(breakSelect);
+    breakSelect.addEventListener("change", () => {
+        manualBreakOverride = true;
+    });
 }
+["m-start-hour", "m-start-minute", "m-end-hour", "m-end-minute"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener("change", updateBreakFromTimes);
+    }
+});
 if (canManageStore) {
     buildTimeOptions(document.getElementById("m-split-start-hour"));
     buildTimeOptions(document.getElementById("m-split-end-hour"));
@@ -1045,11 +1054,34 @@ function getDefaultBreakMinutes(startValue, endValue) {
     breakRules.forEach((rule) => {
         const threshold = Number(rule.min_hours) * 60;
         const minutes = Number(rule.break_minutes);
-        if (!Number.isNaN(threshold) && !Number.isNaN(minutes) && duration > threshold) {
+        if (!Number.isNaN(threshold) && !Number.isNaN(minutes) && duration >= threshold) {
             result = Math.max(result, minutes);
         }
     });
     return result;
+}
+
+let manualBreakOverride = false;
+
+function updateBreakFromTimes() {
+    const breakEl = document.getElementById("m-break");
+    if (!breakEl) {
+        return;
+    }
+    if (manualBreakOverride) {
+        return;
+    }
+    const startHour = document.getElementById("m-start-hour").value;
+    const startMinute = document.getElementById("m-start-minute").value;
+    const endHour = document.getElementById("m-end-hour").value;
+    const endMinute = document.getElementById("m-end-minute").value;
+    if (!startHour || !startMinute || !endHour || !endMinute) {
+        breakEl.value = "0";
+        return;
+    }
+    const startValue = `${startHour}:${startMinute}`;
+    const endValue = `${endHour}:${endMinute}`;
+    breakEl.value = String(getDefaultBreakMinutes(startValue, endValue));
 }
 
 function getStoreValue() {
@@ -1096,6 +1128,7 @@ function openShiftModal(el) {
     document.getElementById("m-date-hidden").value = el.dataset.date;
     setTimeSelects("m-start", el.dataset.start);
     setTimeSelects("m-end", el.dataset.end);
+    manualBreakOverride = false;
     const breakEl = document.getElementById("m-break");
     if (breakEl) {
         breakEl.value = el.dataset.breakMinutes || "0";
@@ -1132,10 +1165,8 @@ function openCreateModal(payload) {
     document.getElementById("m-date-hidden").value = payload.dateStr;
     setTimeSelects("m-start", payload.startValue);
     setTimeSelects("m-end", payload.endValue);
-    const breakEl = document.getElementById("m-break");
-    if (breakEl) {
-        breakEl.value = String(getDefaultBreakMinutes(payload.startValue, payload.endValue));
-    }
+    manualBreakOverride = false;
+    updateBreakFromTimes();
     const noteEl = document.getElementById("m-note");
     if (noteEl) {
         noteEl.value = "";

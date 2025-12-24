@@ -200,7 +200,7 @@ def calculate_break_minutes(break_rules, start_time, end_time):
     duration = end_min - start_min
     applied = 0
     for rule in normalize_break_rules(break_rules):
-        if duration > int(rule["min_hours"] * 60):
+        if duration >= int(rule["min_hours"] * 60):
             applied = max(applied, rule["break_minutes"])
     return applied
 

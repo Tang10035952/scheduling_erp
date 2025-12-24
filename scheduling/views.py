@@ -223,6 +223,11 @@ def scheduling_timeline(request):
     shift_delete_url = reverse("scheduling:shift_delete")
 
     today_str = localtime(now()).date().strftime("%Y-%m-%d")
+    def format_minutes(total_minutes):
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"{hours:02d}:{minutes:02d}"
+
     if view == "month":
         _, days_in_month = month_calendar.monthrange(month_date.year, month_date.month)
         day_list = [month_date.replace(day=i) for i in range(1, days_in_month + 1)]
@@ -239,6 +244,18 @@ def scheduling_timeline(request):
             shifts_qs.select_related("employee__user", "store")
             .order_by("start_time")
         )
+
+        scheduled_minutes_by_employee = {}
+        for s in shifts:
+            if not s.store_id:
+                continue
+            start_min = s.start_time.hour * 60 + s.start_time.minute
+            end_min = s.end_time.hour * 60 + s.end_time.minute
+            if end_min <= start_min:
+                end_min += 24 * 60
+            scheduled_minutes_by_employee[s.employee_id] = (
+                scheduled_minutes_by_employee.get(s.employee_id, 0) + (end_min - start_min)
+            )
 
         by_employee_date = {}
         for s in shifts:
@@ -276,6 +293,7 @@ def scheduling_timeline(request):
             month_rows.append({
                 "employee": worker,
                 "display_name": build_display_name(worker),
+                "scheduled_hours": format_minutes(scheduled_minutes_by_employee.get(worker.id, 0)),
                 "day_cells": day_cells,
             })
 
@@ -344,6 +362,18 @@ def scheduling_timeline(request):
         .order_by("start_time")
     )
 
+    scheduled_minutes_by_employee = {}
+    for s in shifts:
+        if not s.store_id:
+            continue
+        start_min = s.start_time.hour * 60 + s.start_time.minute
+        end_min = s.end_time.hour * 60 + s.end_time.minute
+        if end_min <= start_min:
+            end_min += 24 * 60
+        scheduled_minutes_by_employee[s.employee_id] = (
+            scheduled_minutes_by_employee.get(s.employee_id, 0) + (end_min - start_min)
+        )
+
     by_employee_date = {}
     for s in shifts:
         by_employee_date.setdefault(s.employee_id, {}).setdefault(s.date, []).append(s)
@@ -396,6 +426,7 @@ def scheduling_timeline(request):
         rows.append({
             "employee": worker,
             "display_name": build_display_name(worker),
+            "scheduled_hours": format_minutes(scheduled_minutes_by_employee.get(worker.id, 0)),
             "days": day_entries,
         })
 

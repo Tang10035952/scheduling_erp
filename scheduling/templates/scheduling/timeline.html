@@ -168,8 +168,17 @@
     left: 0;
     background: #f8fafc;
     font-weight: 600;
-    min-width: 140px;
+    min-width: 90px;
     z-index: 2;
+    box-shadow: 2px 0 0 #e5e7eb;
+}
+
+.week-table .hours-cell {
+    position: sticky;
+    left: 90px;
+    background: #f8fafc;
+    min-width: 50px;
+    z-index: 1;
     box-shadow: 2px 0 0 #e5e7eb;
 }
 
@@ -178,8 +187,17 @@
     z-index: 10; /* keep header label above body cells */
 }
 
+.week-table thead .hours-cell {
+    top: 0;
+    z-index: 9;
+}
+
 .week-table tbody .name-cell {
     z-index: 3; /* above body cells but below header */
+}
+
+.week-table tbody .hours-cell {
+    z-index: 2;
 }
 
 .shift-line {
@@ -267,8 +285,17 @@
     left: 0;
     background: #f8fafc;
     font-weight: 600;
-    min-width: 140px;
+    min-width: 90px;
     z-index: 2;
+    box-shadow: 2px 0 0 #e5e7eb;
+}
+
+.month-table .hours-cell {
+    position: sticky;
+    left: 90px;
+    background: #f8fafc;
+    min-width: 50px;
+    z-index: 1;
     box-shadow: 2px 0 0 #e5e7eb;
 }
 
@@ -277,8 +304,17 @@
     z-index: 6;
 }
 
+.month-table thead .hours-cell {
+    top: 0;
+    z-index: 5;
+}
+
 .month-table tbody .name-cell {
     z-index: 3;
+}
+
+.month-table tbody .hours-cell {
+    z-index: 2;
 }
 
 .month-scroll {
@@ -487,6 +523,9 @@
                 <thead>
                     <tr>
                         <th class="name-cell">員工\日期</th>
+                        {% if can_manage_store %}
+                        <th class="hours-cell">已排班時數</th>
+                        {% endif %}
                         {% for day in day_headers %}
                         <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
                             <a class="date-link" href="?view=day&date={{ day.date_str }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
@@ -503,6 +542,11 @@
                         <td class="name-cell">
                             {{ row.display_name }}
                         </td>
+                        {% if can_manage_store %}
+                        <td class="hours-cell">
+                            <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                        </td>
+                        {% endif %}
                         {% for day in row.days %}
                         <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
                             data-employee-id="{{ row.employee.id }}"
@@ -542,6 +586,9 @@
                 <thead>
                     <tr>
                         <th class="name-cell">員工\日期</th>
+                        {% if can_manage_store %}
+                        <th class="hours-cell">已排班時數</th>
+                        {% endif %}
                         {% for day in day_headers %}
                         <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
                             <a class="date-link" href="?view=day&date={{ day.date_str }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
@@ -558,6 +605,11 @@
                         <td class="name-cell">
                             {{ row.display_name }}
                         </td>
+                        {% if can_manage_store %}
+                        <td class="hours-cell">
+                            <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                        </td>
+                        {% endif %}
                         {% for day in row.days %}
                         <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
                             data-employee-id="{{ row.employee.id }}"
@@ -597,6 +649,9 @@
                 <thead>
                     <tr>
                         <th class="name-cell">員工\日期</th>
+                        {% if can_manage_store %}
+                        <th class="hours-cell">已排班時數</th>
+                        {% endif %}
                         {% for day in month_days %}
                         <th class="{% if day.holiday_name %}holiday-national-month{% elif day.is_weekend %}holiday-general-month{% endif %}{% if day.date == today_str %} today-highlight{% endif %}">
                             <a class="date-link" href="?view=day&date={{ day.date }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date }}">{{ day.day }}（{{ day.weekday_label }}）</a>
@@ -613,6 +668,11 @@
                         <td class="name-cell">
                             {{ row.display_name }}
                         </td>
+                        {% if can_manage_store %}
+                        <td class="hours-cell">
+                            <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                        </td>
+                        {% endif %}
                         {% for cell in row.day_cells %}
                         <td class="{% if cell.holiday_name %}holiday-national-month{% elif cell.is_weekend %}holiday-general-month{% endif %}{% if cell.date == today_str %} today-highlight{% endif %} shift-cell{% if not cell.shifts %} shift-cell-empty{% endif %}"
                             data-employee-id="{{ row.employee.id }}"

@@ -136,6 +136,9 @@
             <span class="navbar-text me-3">
                 Hi, {{ user.userprofile.name|default:user.username }}
             </span>
+            {% if user.userprofile.is_store_manager %}
+            <a class="btn btn-outline-light btn-sm me-2" href="{% url 'users:password_change' %}">修改密碼</a>
+            {% endif %}
             <a class="btn btn-outline-light btn-sm" href="{% url 'users:logout' %}">登出</a>
             {% endif %}
         </div>

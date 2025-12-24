@@ -23,6 +23,7 @@ from openpyxl.styles import Font, Alignment, PatternFill
 from django.views.decorators.csrf import csrf_exempt
 
 import json
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -112,11 +113,96 @@ def get_active_window():
             latest.allow_worker_view,
             latest.allow_worker_edit_shifts,
             latest.allow_worker_register,
+            latest.break_rules or [],
         )
     today = localtime(now()).date()
     start = today - timedelta(days=today.weekday())
     end = start + timedelta(days=6)
-    return start, end, False, False, False, False
+    return start, end, False, False, False, False, []
+
+
+BREAK_MINUTE_OPTIONS = {0, 30, 60, 90, 120}
+
+
+def parse_min_hours(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        hours = float(value)
+    else:
+        text = str(value).strip()
+        if not text:
+            return None
+        if ":" in text:
+            parts = text.split(":")
+            if len(parts) != 2:
+                return None
+            try:
+                hours_part = int(parts[0])
+                minutes_part = int(parts[1])
+            except ValueError:
+                return None
+            if hours_part < 0 or minutes_part < 0 or minutes_part >= 60:
+                return None
+            hours = hours_part + (minutes_part / 60)
+        else:
+            try:
+                hours = float(text)
+            except ValueError:
+                return None
+    if hours <= 0 or math.isnan(hours):
+        return None
+    return hours
+
+
+def minutes_to_time_str(total_minutes):
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    return f"{hours:02d}:{minutes:02d}"
+
+
+def normalize_break_rules(raw_rules):
+    normalized = []
+    for rule in raw_rules or []:
+        min_hours = parse_min_hours(rule.get("min_hours"))
+        if min_hours is None:
+            continue
+        try:
+            break_minutes = int(rule.get("break_minutes"))
+        except (TypeError, ValueError):
+            continue
+        if break_minutes not in BREAK_MINUTE_OPTIONS:
+            continue
+        normalized.append({
+            "min_hours": min_hours,
+            "break_minutes": break_minutes,
+        })
+    return sorted(normalized, key=lambda r: r["min_hours"])
+
+
+def parse_break_minutes(value):
+    if value is None or value == "":
+        return None
+    try:
+        minutes = int(value)
+    except (TypeError, ValueError):
+        return None
+    if minutes not in BREAK_MINUTE_OPTIONS:
+        return None
+    return minutes
+
+
+def calculate_break_minutes(break_rules, start_time, end_time):
+    start_min = start_time.hour * 60 + start_time.minute
+    end_min = end_time.hour * 60 + end_time.minute
+    if end_min <= start_min:
+        return 0
+    duration = end_min - start_min
+    applied = 0
+    for rule in normalize_break_rules(break_rules):
+        if duration > int(rule["min_hours"] * 60):
+            applied = max(applied, rule["break_minutes"])
+    return applied
 
 
 @login_required
@@ -137,7 +223,7 @@ def scheduling_timeline(request):
     if not is_manager_user and not is_worker_user:
         return redirect("users:login")
 
-    _, _, _, allow_worker_view, allow_worker_edit_shifts, _ = get_active_window()
+    _, _, _, allow_worker_view, allow_worker_edit_shifts, _, break_rules = get_active_window()
     if not is_manager_user and not allow_worker_view:
         return render(
             request,
@@ -274,6 +360,7 @@ def scheduling_timeline(request):
                         "start": s.start_time.strftime("%H:%M"),
                         "end": s.end_time.strftime("%H:%M"),
                         "note": s.note,
+                        "break_minutes": s.break_minutes,
                         "store_id": s.store_id,
                         "store_name": store_name,
                         "store_color": store_color,
@@ -324,6 +411,7 @@ def scheduling_timeline(request):
             "worker_edit_closed": worker_edit_closed,
             "can_manage_store": is_manager_user,
             "show_empty_rows": show_empty_rows,
+            "break_rules_json": json.dumps(normalize_break_rules(break_rules)),
         })
         logger.info("timeline view=%s total_ms=%.1f", view, (time.perf_counter() - t0) * 1000)
         return response
@@ -403,6 +491,7 @@ def scheduling_timeline(request):
                     "start_label": s.start_time.strftime("%H:%M"),
                     "end_label": s.end_time.strftime("%H:%M"),
                     "note": s.note,
+                    "break_minutes": s.break_minutes,
                     "store_id": s.store_id,
                     "store_name": store_name,
                     "store_color": store_color,
@@ -452,6 +541,7 @@ def scheduling_timeline(request):
         "show_empty_rows": show_empty_rows,
         "worker_edit_closed": worker_edit_closed,
         "can_manage_store": is_manager_user,
+        "break_rules_json": json.dumps(normalize_break_rules(break_rules)),
     })
     logger.info("timeline view=%s total_ms=%.1f", view, (time.perf_counter() - t0) * 1000)
     return response
@@ -532,6 +622,7 @@ def create_shift(request):
     date_str = data.get("date")
     start_str = data.get("start")
     end_str = data.get("end")
+    raw_break_minutes = data.get("break_minutes")
     note = (data.get("note") or "").strip()
 
     if not employee_id or not date_str or not start_str or not end_str:
@@ -555,6 +646,13 @@ def create_shift(request):
     if store_id and not Store.objects.filter(id=store_id).exists():
         return JsonResponse({"ok": False, "error": "invalid store"}, status=400)
 
+    break_minutes = parse_break_minutes(raw_break_minutes)
+    if raw_break_minutes not in (None, "") and break_minutes is None:
+        return JsonResponse({"ok": False, "error": "invalid break minutes"}, status=400)
+    if break_minutes is None:
+        _, _, _, _, _, _, break_rules = get_active_window()
+        break_minutes = calculate_break_minutes(break_rules, start_time, end_time)
+
     conflict = Shift.objects.filter(
         employee_id=employee_id,
         date=date,
@@ -573,6 +671,7 @@ def create_shift(request):
         date=date,
         start_time=start_time,
         end_time=end_time,
+        break_minutes=break_minutes,
         is_published=True,
         note=note,
     )
@@ -601,6 +700,7 @@ def update_shift(request):
     split_end_str = data.get("split_end")
     split_store_id = data.get("split_store_id")
     note = data.get("note")
+    raw_break_minutes = data.get("break_minutes")
     try:
         start_time = datetime.strptime(data["start"], "%H:%M").time()
         end_time = datetime.strptime(data["end"], "%H:%M").time()
@@ -614,6 +714,10 @@ def update_shift(request):
         store_id = None
     if store_id and not Store.objects.filter(id=store_id).exists():
         return JsonResponse({"ok": False, "error": "invalid store"}, status=400)
+
+    break_minutes = parse_break_minutes(raw_break_minutes)
+    if raw_break_minutes not in (None, "") and break_minutes is None:
+        return JsonResponse({"ok": False, "error": "invalid break minutes"}, status=400)
 
     split_start_time = None
     split_end_time = None
@@ -663,6 +767,8 @@ def update_shift(request):
     shift.start_time = start_time
     shift.end_time = end_time
     shift.store_id = store_id
+    if break_minutes is not None:
+        shift.break_minutes = break_minutes
     if note is not None:
         shift.note = note.strip()
     shift.save()
@@ -675,6 +781,7 @@ def update_shift(request):
             start_time=split_start_time,
             end_time=split_end_time,
             is_published=True,
+            break_minutes=0,
         )
 
     return JsonResponse({"ok": True})
@@ -683,8 +790,18 @@ def update_shift(request):
 @login_required
 @user_passes_test(is_manager)
 def manage_window(request):
-    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, allow_worker_register = get_active_window()
+    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, allow_worker_register, break_rules = get_active_window()
     stores = Store.objects.all()
+    current_break_rules = normalize_break_rules(break_rules)
+    break_rules_form = []
+    for rule in current_break_rules:
+        minutes = int(rule["min_hours"] * 60)
+        break_rules_form.append({
+            "min_hours": rule["min_hours"],
+            "min_time": minutes_to_time_str(minutes),
+            "break_minutes": rule["break_minutes"],
+        })
+    break_threshold_options = [minutes_to_time_str(m) for m in range(30, (12 * 60) + 1, 30)]
 
     if request.method == "POST":
         store_name = request.POST.get("store_name")
@@ -739,6 +856,7 @@ def manage_window(request):
                     allow_worker_view=allow_worker_view,
                     allow_worker_edit_shifts=allow_worker_edit_shifts,
                     allow_worker_register=allow_worker_register,
+                    break_rules=current_break_rules,
                 )
                 messages.success(request, "可排班日期設定已更新。")
                 return redirect("scheduling:manage_window")
@@ -753,8 +871,42 @@ def manage_window(request):
                 allow_worker_view=allow_worker_view,
                 allow_worker_edit_shifts=allow_worker_edit_shifts,
                 allow_worker_register=allow_worker_register,
+                break_rules=current_break_rules,
             )
             messages.success(request, "員工設定已更新。")
+            return redirect("scheduling:manage_window")
+        elif action == "update_break_rules":
+            thresholds = request.POST.getlist("break_threshold_hours")
+            minutes_list = request.POST.getlist("break_minutes")
+            raw_rules = []
+            has_partial = False
+            for idx in range(min(len(thresholds), len(minutes_list))):
+                threshold = (thresholds[idx] or "").strip()
+                minutes = (minutes_list[idx] or "").strip()
+                if not threshold:
+                    if minutes and minutes != "0":
+                        has_partial = True
+                    continue
+                if not minutes:
+                    has_partial = True
+                    continue
+                raw_rules.append({
+                    "min_hours": threshold,
+                    "break_minutes": minutes,
+                })
+            new_rules = normalize_break_rules(raw_rules)
+            if has_partial or len(raw_rules) != len(new_rules):
+                messages.error(request, "排班休息時間設定有誤，請確認數值。")
+                return redirect("scheduling:manage_window")
+            SchedulingWindow.objects.create(
+                start_date=start_date,
+                end_date=end_date,
+                allow_worker_view=allow_worker_view,
+                allow_worker_edit_shifts=allow_worker_edit_shifts,
+                allow_worker_register=allow_worker_register,
+                break_rules=new_rules,
+            )
+            messages.success(request, "排班休息時間已更新。")
             return redirect("scheduling:manage_window")
 
     return render(
@@ -768,6 +920,8 @@ def manage_window(request):
             "allow_worker_edit_shifts": allow_worker_edit_shifts,
             "allow_worker_register": allow_worker_register,
             "stores": stores,
+            "break_rules": break_rules_form,
+            "break_threshold_options": break_threshold_options,
         },
     )
 
@@ -782,23 +936,57 @@ def worker_schedule(request):
     if profile.is_manager():
         return redirect("scheduling:timeline")
 
-    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, _ = get_active_window()
+    start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, _, break_rules = get_active_window()
+    view = request.GET.get("view", "week")
+    if view not in ("day", "week", "month"):
+        view = "week"
     date_str = request.GET.get("date")
     date = parse_date(date_str) if date_str else None
     if not date:
         date = localtime(now()).date()
 
-    week_start = date - timedelta(days=date.weekday())
-    date_range = [week_start + timedelta(days=i) for i in range(7)]
-    holiday_map = build_holiday_map(date_range)
+    month_str = request.GET.get("month")
+    month_date = None
+    if month_str:
+        try:
+            year, month = month_str.split("-")
+            month_date = datetime(int(year), int(month), 1).date()
+        except ValueError:
+            month_date = None
+    if not month_date:
+        month_date = date.replace(day=1)
+    if view == "month" and not date_str:
+        date = month_date
+
     weekday_labels = ["一", "二", "三", "四", "五", "六", "日"]
-    day_headers = [{
-        "label": f"{d.strftime('%m/%d')}（{weekday_labels[d.weekday()]}）",
-        "date": d,
-        "date_str": d.strftime("%Y-%m-%d"),
-        "is_weekend": d.weekday() >= 5,
-        "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
-    } for d in date_range]
+    day_headers = None
+    month_days = None
+    if view == "week":
+        week_start = date - timedelta(days=date.weekday())
+        date_range = [week_start + timedelta(days=i) for i in range(7)]
+    elif view == "day":
+        date_range = [date]
+    else:
+        _, days_in_month = month_calendar.monthrange(month_date.year, month_date.month)
+        date_range = [month_date.replace(day=i) for i in range(1, days_in_month + 1)]
+
+    holiday_map = build_holiday_map(date_range)
+    if view in ("week", "day"):
+        day_headers = [{
+            "label": f"{d.strftime('%m/%d')}（{weekday_labels[d.weekday()]}）",
+            "date": d,
+            "date_str": d.strftime("%Y-%m-%d"),
+            "is_weekend": d.weekday() >= 5,
+            "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
+        } for d in date_range]
+    else:
+        month_days = [{
+            "day": d.day,
+            "date": d.strftime("%Y-%m-%d"),
+            "is_weekend": d.weekday() >= 5,
+            "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
+            "weekday_label": weekday_labels[d.weekday()],
+        } for d in date_range]
 
     if allow_worker_view:
         workers = UserProfile.objects.filter(role="worker").select_related("user").order_by(
@@ -821,42 +1009,96 @@ def worker_schedule(request):
     for s in shifts:
         by_employee_date.setdefault(s.employee_id, {}).setdefault(s.date, []).append(s)
 
+    scheduled_minutes = 0
+    for s in shifts:
+        if s.employee_id != profile.id or not s.store_id:
+            continue
+        start_min = s.start_time.hour * 60 + s.start_time.minute
+        end_min = s.end_time.hour * 60 + s.end_time.minute
+        if end_min <= start_min:
+            end_min += 24 * 60
+        scheduled_minutes += end_min - start_min
+
+    def format_minutes(total_minutes):
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        return f"{hours:02d}:{minutes:02d}"
+
     rows = []
-    for worker in workers:
-        day_entries = []
-        for d in date_range:
-            items = []
-            for s in by_employee_date.get(worker.id, {}).get(d, []):
-                store_name, store_color, store_text_color = get_store_display(s)
-                items.append({
-                    "id": s.id,
+    month_rows = None
+    if view == "month":
+        month_rows = []
+        for worker in workers:
+            day_cells = []
+            for d in date_range:
+                items = []
+                for s in by_employee_date.get(worker.id, {}).get(d, []):
+                    store_name, store_color, store_text_color = get_store_display(s)
+                    items.append({
+                        "id": s.id,
+                        "date": d.strftime("%Y-%m-%d"),
+                        "start": s.start_time.strftime("%H:%M"),
+                        "end": s.end_time.strftime("%H:%M"),
+                        "note": s.note,
+                        "break_minutes": s.break_minutes,
+                        "store_id": s.store_id,
+                        "store_name": store_name,
+                        "store_color": store_color,
+                        "store_text_color": store_text_color,
+                        "label": f"{s.start_time.strftime('%H:%M')}-{s.end_time.strftime('%H:%M')} {store_name}".strip(),
+                        "label_no_store": f"{s.start_time.strftime('%H:%M')}-{s.end_time.strftime('%H:%M')}",
+                    })
+                date_str = d.strftime("%Y-%m-%d")
+                day_cells.append({
+                    "date": date_str,
+                    "is_weekend": d.weekday() >= 5,
+                    "holiday_name": holiday_map.get(date_str),
+                    "shifts": items,
+                })
+            if not any(cell["shifts"] for cell in day_cells) and worker.id != profile.id:
+                continue
+            month_rows.append({
+                "employee": worker,
+                "display_name": worker.display_name(),
+                "day_cells": day_cells,
+            })
+    else:
+        for worker in workers:
+            day_entries = []
+            for d in date_range:
+                items = []
+                for s in by_employee_date.get(worker.id, {}).get(d, []):
+                    store_name, store_color, store_text_color = get_store_display(s)
+                    items.append({
+                        "id": s.id,
+                        "date": d,
+                        "start_label": s.start_time.strftime("%H:%M"),
+                        "end_label": s.end_time.strftime("%H:%M"),
+                        "note": s.note,
+                        "break_minutes": s.break_minutes,
+                        "store_id": s.store_id,
+                        "store_name": store_name,
+                        "store_color": store_color,
+                        "store_text_color": store_text_color,
+                    })
+
+                day_entries.append({
                     "date": d,
-                    "start_label": s.start_time.strftime("%H:%M"),
-                    "end_label": s.end_time.strftime("%H:%M"),
-                    "note": s.note,
-                    "store_id": s.store_id,
-                    "store_name": store_name,
-                    "store_color": store_color,
-                    "store_text_color": store_text_color,
+                    "label": d.strftime("%m/%d"),
+                    "shifts": items,
+                    "date_str": d.strftime("%Y-%m-%d"),
+                    "is_weekend": d.weekday() >= 5,
+                    "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
                 })
 
-            day_entries.append({
-                "date": d,
-                "label": d.strftime("%m/%d"),
-                "shifts": items,
-                "date_str": d.strftime("%Y-%m-%d"),
-                "is_weekend": d.weekday() >= 5,
-                "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
+            if not any(entry["shifts"] for entry in day_entries) and worker.id != profile.id:
+                continue
+
+            rows.append({
+                "employee": worker,
+                "display_name": worker.display_name(),
+                "days": day_entries,
             })
-
-        if not any(entry["shifts"] for entry in day_entries) and worker.id != profile.id:
-            continue
-
-        rows.append({
-            "employee": worker,
-            "display_name": worker.display_name(),
-            "days": day_entries,
-        })
 
     shift_create_url = reverse("scheduling:worker_shift_create")
     shift_update_url = reverse("scheduling:worker_shift_update")
@@ -869,11 +1111,13 @@ def worker_schedule(request):
         {
             "date": date,
             "rows": rows,
-            "view": "week",
+            "view": view,
             "day_headers": day_headers,
-            "month_value": date.strftime("%Y-%m"),
+            "month_value": month_date.strftime("%Y-%m"),
+            "month_days": month_days,
+            "month_rows": month_rows,
             "read_only": not allow_worker_edit_shifts,
-            "hide_view_toggle": True,
+            "hide_view_toggle": False,
             "page_title": "我的班表",
             "allowed_employee_id": profile.id,
             "can_edit_own_only": True,
@@ -888,12 +1132,14 @@ def worker_schedule(request):
             "worker_edit_closed": not allow_worker_edit_shifts,
             "can_manage_store": False,
             "show_profile_warning": show_profile_warning,
+            "self_scheduled_hours": format_minutes(scheduled_minutes),
+            "break_rules_json": json.dumps(normalize_break_rules(break_rules)),
         },
     )
 
 
 def worker_shift_edit_allowed():
-    _, _, _, _, allow_worker_edit_shifts, _ = get_active_window()
+    _, _, _, _, allow_worker_edit_shifts, _, _ = get_active_window()
     return allow_worker_edit_shifts
 
 
@@ -923,7 +1169,7 @@ def create_availability(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _, break_rules = get_active_window()
     if date < start_date or date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -1022,7 +1268,7 @@ def update_availability(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _, _ = get_active_window()
     if avail.date < start_date or avail.date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -1076,6 +1322,7 @@ def create_worker_shift(request):
     date_str = data.get("date")
     start_str = data.get("start")
     end_str = data.get("end")
+    raw_break_minutes = data.get("break_minutes")
     if not date_str or not start_str or not end_str:
         return JsonResponse({"ok": False, "error": "請填寫完整日期與時間"}, status=400)
 
@@ -1092,7 +1339,7 @@ def create_worker_shift(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _, _ = get_active_window()
     if date < start_date or date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -1106,12 +1353,19 @@ def create_worker_shift(request):
     if conflict:
         return JsonResponse({"ok": False, "error": "排班時間重疊，請重新確認。"}, status=400)
 
+    break_minutes = parse_break_minutes(raw_break_minutes)
+    if raw_break_minutes not in (None, "") and break_minutes is None:
+        return JsonResponse({"ok": False, "error": "休息時間格式錯誤"}, status=400)
+    if break_minutes is None:
+        break_minutes = calculate_break_minutes(break_rules, start_time, end_time)
+
     shift = Shift.objects.create(
         employee=profile,
         store_id=None,
         date=date,
         start_time=start_time,
         end_time=end_time,
+        break_minutes=break_minutes,
         is_published=True,
     )
 
@@ -1138,6 +1392,7 @@ def update_worker_shift(request):
     shift_id = data.get("id")
     start_str = data.get("start")
     end_str = data.get("end")
+    raw_break_minutes = data.get("break_minutes")
     if not shift_id or not start_str or not end_str:
         return JsonResponse({"ok": False, "error": "請填寫完整時間"}, status=400)
 
@@ -1157,7 +1412,7 @@ def update_worker_shift(request):
     if (end_time.hour * 60 + end_time.minute) <= (start_time.hour * 60 + start_time.minute):
         return JsonResponse({"ok": False, "error": "結束時間需晚於開始時間"}, status=400)
 
-    start_date, end_date, _, _, _, _ = get_active_window()
+    start_date, end_date, _, _, _, _, _ = get_active_window()
     if shift.date < start_date or shift.date > end_date:
         return JsonResponse({"ok": False, "error": "不在可排班的日期區間內"}, status=400)
 
@@ -1171,10 +1426,16 @@ def update_worker_shift(request):
     if conflict:
         return JsonResponse({"ok": False, "error": "排班時間重疊，請重新確認。"}, status=400)
 
+    break_minutes = parse_break_minutes(raw_break_minutes)
+    if raw_break_minutes not in (None, "") and break_minutes is None:
+        return JsonResponse({"ok": False, "error": "休息時間格式錯誤"}, status=400)
+
     shift.start_time = start_time
     shift.end_time = end_time
     shift.store_id = None
-    shift.save(update_fields=["start_time", "end_time", "store_id"])
+    if break_minutes is not None:
+        shift.break_minutes = break_minutes
+    shift.save(update_fields=["start_time", "end_time", "store_id", "break_minutes"])
 
     return JsonResponse({"ok": True})
 

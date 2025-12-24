@@ -20,6 +20,7 @@ class SchedulingWindow(models.Model):
     allow_worker_view = models.BooleanField(default=False)
     allow_worker_edit_shifts = models.BooleanField(default=False)
     allow_worker_register = models.BooleanField(default=False)
+    break_rules = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -76,6 +77,7 @@ class Shift(models.Model):
     end_time = models.TimeField(verbose_name='結束時間')
     is_published = models.BooleanField(default=False, verbose_name='是否發佈')
     note = models.CharField(max_length=255, blank=True, default="", verbose_name="備註")
+    break_minutes = models.PositiveSmallIntegerField(default=0, verbose_name="休息時間(分鐘)")
 
     class Meta:
         ordering = ['date', 'start_time']

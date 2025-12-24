@@ -563,6 +563,7 @@
                                       data-start="{{ shift.start_label }}"
                                       data-end="{{ shift.end_label }}"
                                       data-note="{{ shift.note|default_if_none:''|escape }}"
+                                      data-break-minutes="{{ shift.break_minutes }}"
                                       data-store-id="{{ shift.store_id|default_if_none:'' }}"
                                       data-store-name="{{ shift.store_name|default_if_none:'' }}"
                                       title="{{ shift.note|default_if_none:''|escape }}"
@@ -626,6 +627,7 @@
                                       data-start="{{ shift.start_label }}"
                                       data-end="{{ shift.end_label }}"
                                       data-note="{{ shift.note|default_if_none:''|escape }}"
+                                      data-break-minutes="{{ shift.break_minutes }}"
                                       data-store-id="{{ shift.store_id|default_if_none:'' }}"
                                       data-store-name="{{ shift.store_name|default_if_none:'' }}"
                                       title="{{ shift.note|default_if_none:''|escape }}"
@@ -689,6 +691,7 @@
                                       data-start="{{ shift.start }}"
                                       data-end="{{ shift.end }}"
                                       data-note="{{ shift.note|default_if_none:''|escape }}"
+                                      data-break-minutes="{{ shift.break_minutes }}"
                                       data-store-id="{{ shift.store_id|default_if_none:'' }}"
                                       data-store-name="{{ shift.store_name|default_if_none:'' }}"
                                       title="{{ shift.note|default_if_none:''|escape }}"
@@ -794,6 +797,13 @@
           <label>備註</label>
           <input id="m-note" class="form-control" type="text"{% if not can_manage_store %} readonly{% endif %}>
         </div>
+        {% if can_manage_store %}
+        <div class="mt-3">
+          <label>休息時間</label>
+          <select id="m-break" class="form-select"></select>
+          <div class="form-text">以半小時為單位，最多 2 小時。</div>
+        </div>
+        {% endif %}
 
         <input type="hidden" id="m-id">
         <input type="hidden" id="m-employee-id">
@@ -821,6 +831,7 @@ const shiftDeleteUrl = "{{ shift_delete_url }}";
 const allowedEmployeeId = "{{ allowed_employee_id|default:'' }}";
 const canEditOwnOnly = "{{ can_edit_own_only|default:'' }}" === "True";
 const canManageStore = "{{ can_manage_store|default:'' }}" === "True";
+const breakRules = {{ break_rules_json|default:"[]"|safe }};
 const rememberScroll = () => {
     try {
         sessionStorage.setItem("timelineScrollY", String(window.scrollY || 0));
@@ -918,10 +929,26 @@ function buildMinuteOptions(selectEl) {
     });
 }
 
+function buildBreakOptions(selectEl) {
+    selectEl.innerHTML = "";
+    [0, 30, 60, 90, 120].forEach((minutes) => {
+        const opt = document.createElement("option");
+        const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
+        const mins = String(minutes % 60).padStart(2, "0");
+        opt.value = String(minutes);
+        opt.textContent = `${hours}:${mins}`;
+        selectEl.appendChild(opt);
+    });
+}
+
 buildTimeOptions(document.getElementById("m-start-hour"));
 buildTimeOptions(document.getElementById("m-end-hour"));
 buildMinuteOptions(document.getElementById("m-start-minute"));
 buildMinuteOptions(document.getElementById("m-end-minute"));
+const breakSelect = document.getElementById("m-break");
+if (breakSelect) {
+    buildBreakOptions(breakSelect);
+}
 if (canManageStore) {
     buildTimeOptions(document.getElementById("m-split-start-hour"));
     buildTimeOptions(document.getElementById("m-split-end-hour"));
@@ -1000,6 +1027,31 @@ function getTimeValues() {
     return { startValue, endValue };
 }
 
+function getBreakValue() {
+    const breakEl = document.getElementById("m-break");
+    if (!breakEl) {
+        return 0;
+    }
+    const value = parseInt(breakEl.value || "0", 10);
+    return Number.isNaN(value) ? 0 : value;
+}
+
+function getDefaultBreakMinutes(startValue, endValue) {
+    const duration = timeToMinutes(endValue) - timeToMinutes(startValue);
+    if (duration <= 0 || !Array.isArray(breakRules)) {
+        return 0;
+    }
+    let result = 0;
+    breakRules.forEach((rule) => {
+        const threshold = Number(rule.min_hours) * 60;
+        const minutes = Number(rule.break_minutes);
+        if (!Number.isNaN(threshold) && !Number.isNaN(minutes) && duration > threshold) {
+            result = Math.max(result, minutes);
+        }
+    });
+    return result;
+}
+
 function getStoreValue() {
     if (!canManageStore) {
         return null;
@@ -1044,6 +1096,10 @@ function openShiftModal(el) {
     document.getElementById("m-date-hidden").value = el.dataset.date;
     setTimeSelects("m-start", el.dataset.start);
     setTimeSelects("m-end", el.dataset.end);
+    const breakEl = document.getElementById("m-break");
+    if (breakEl) {
+        breakEl.value = el.dataset.breakMinutes || "0";
+    }
     const noteEl = document.getElementById("m-note");
     if (noteEl) {
         noteEl.value = el.dataset.note || "";
@@ -1076,6 +1132,10 @@ function openCreateModal(payload) {
     document.getElementById("m-date-hidden").value = payload.dateStr;
     setTimeSelects("m-start", payload.startValue);
     setTimeSelects("m-end", payload.endValue);
+    const breakEl = document.getElementById("m-break");
+    if (breakEl) {
+        breakEl.value = String(getDefaultBreakMinutes(payload.startValue, payload.endValue));
+    }
     const noteEl = document.getElementById("m-note");
     if (noteEl) {
         noteEl.value = "";
@@ -1184,6 +1244,7 @@ document.getElementById("updateShiftBtn").addEventListener("click", function() {
         id: document.getElementById("m-id").value,
         start: timeValues.startValue,
         end: timeValues.endValue,
+        break_minutes: getBreakValue(),
     };
     if (canManageStore) {
         const storeId = getStoreValue();
@@ -1236,6 +1297,7 @@ document.getElementById("createShiftBtn").addEventListener("click", function() {
         date: document.getElementById("m-date-hidden").value,
         start: timeValues.startValue,
         end: timeValues.endValue,
+        break_minutes: getBreakValue(),
     };
     if (canManageStore) {
         const storeId = getStoreValue();

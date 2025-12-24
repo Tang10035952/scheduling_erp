@@ -188,6 +188,10 @@ SHIFT_OPTIONS = [
     (time(12, 0), time(16, 0)),  # 中班
     (time(17, 0), time(22, 0)),  # 晚班
 ]
+BREAK_RULES = [
+    {"min_hours": 4, "break_minutes": 30},
+    {"min_hours": 8, "break_minutes": 60},
+]
 SHIFT_NOTES = [
     "",
     "",
@@ -203,6 +207,19 @@ SHIFT_NOTES = [
 # -------------------------------
 # Step 5：依意願自動排班（深色正式班表）
 # -------------------------------
+def calculate_break_minutes(start_time, end_time):
+    start_min = start_time.hour * 60 + start_time.minute
+    end_min = end_time.hour * 60 + end_time.minute
+    if end_min <= start_min:
+        end_min += 24 * 60
+    duration = end_min - start_min
+    applied = 0
+    for rule in BREAK_RULES:
+        if duration > int(rule["min_hours"] * 60):
+            applied = max(applied, rule["break_minutes"])
+    return applied
+
+
 def create_shifts(workers, stores):
     print("📅 Creating shifts...")
 
@@ -223,12 +240,14 @@ def create_shifts(workers, stores):
 
             for start, end in chosen:
                 store = None if random.random() < 0.25 else random.choice(stores)
+                break_minutes = calculate_break_minutes(start, end)
                 Shift.objects.create(
                     employee=worker,
                     store=store,
                     date=day,
                     start_time=start,
                     end_time=end,
+                    break_minutes=break_minutes,
                     is_published=True,
                     note=random.choice(SHIFT_NOTES),
                 )
@@ -247,6 +266,7 @@ def create_window_and_availability(workers):
         allow_worker_view=True,
         allow_worker_edit_shifts=True,
         allow_worker_register=True,
+        break_rules=BREAK_RULES,
     )
 
     target_date = date(today.year, today.month, 16)

@@ -29,12 +29,14 @@
                 <label class="form-label">可排班開始日</label>
                 <input class="form-control" type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" required>
               </div>
-              <div>
-                <label class="form-label">可排班結束日</label>
-                <input class="form-control" type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" required>
+              <div class="row g-2">
+                <div class="col">
+                  <label class="form-label">可排班結束日</label>
+                  <input class="form-control" type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" required>
+                </div>
               </div>
             </div>
-            <div class="d-flex justify-content-end mt-3">
+            <div class="d-flex justify-content-end mt-2">
               <button type="submit" class="btn btn-primary">設定</button>
             </div>
           </form>
@@ -42,7 +44,7 @@
       </div>
       <div class="col-md-6">
         <div class="border rounded-3 p-3 h-100 d-flex flex-column">
-          <h6 class="mb-3">員工開放設定</h6>
+          <h6 class="mb-3">參數設定</h6>
           <form method="post" class="d-flex flex-column flex-grow-1">
             {% csrf_token %}
             <input type="hidden" name="action" value="update_permissions">
@@ -78,6 +80,79 @@
             <div class="d-flex justify-content-end mt-3">
               <button type="submit" class="btn btn-primary">設定</button>
             </div>
+          </form>
+          <hr class="my-3">
+          <form method="post" class="d-flex flex-column flex-grow-1" id="breakRuleForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_break_rules">
+            <div class="d-flex flex-column gap-2 flex-grow-1" id="breakRules">
+              {% if break_rules %}
+                {% for rule in break_rules %}
+                  <div class="row g-2 align-items-center break-rule-row">
+                    <div class="col-5">
+                      <div class="input-group">
+                        <span class="input-group-text">排班超過</span>
+                        <select class="form-select" name="break_threshold_hours">
+                          <option value="">選擇</option>
+                          {% for option in break_threshold_options %}
+                            <option value="{{ option }}" {% if rule.min_time == option %}selected{% endif %}>{{ option }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-5">
+                      <div class="input-group">
+                        <span class="input-group-text">休息</span>
+                        <select class="form-select" name="break_minutes">
+                          <option value="0" {% if rule.break_minutes == 0 %}selected{% endif %}>00:00</option>
+                          <option value="30" {% if rule.break_minutes == 30 %}selected{% endif %}>00:30</option>
+                          <option value="60" {% if rule.break_minutes == 60 %}selected{% endif %}>01:00</option>
+                          <option value="90" {% if rule.break_minutes == 90 %}selected{% endif %}>01:30</option>
+                          <option value="120" {% if rule.break_minutes == 120 %}selected{% endif %}>02:00</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-2 d-grid">
+                      <button type="button" class="btn btn-outline-secondary btn-sm remove-break-rule">移除</button>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="row g-2 align-items-center break-rule-row">
+                  <div class="col-5">
+                    <div class="input-group">
+                      <span class="input-group-text">排班超過</span>
+                      <select class="form-select" name="break_threshold_hours">
+                        <option value="">選擇</option>
+                        {% for option in break_threshold_options %}
+                          <option value="{{ option }}">{{ option }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-5">
+                    <div class="input-group">
+                      <span class="input-group-text">休息</span>
+                      <select class="form-select" name="break_minutes">
+                        <option value="0">00:00</option>
+                        <option value="30">00:30</option>
+                        <option value="60">01:00</option>
+                        <option value="90">01:30</option>
+                        <option value="120">02:00</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-2 d-grid">
+                    <button type="button" class="btn btn-outline-secondary btn-sm remove-break-rule">移除</button>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="addBreakRule">新增條件</button>
+              <button type="submit" class="btn btn-primary btn-sm">設定排班休息時間</button>
+            </div>
+            <small class="text-muted mt-2">休息時間以半小時為單位，最多 2 小時。</small>
           </form>
         </div>
       </div>
@@ -127,4 +202,50 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const breakRules = document.getElementById("breakRules");
+  const addBreakRule = document.getElementById("addBreakRule");
+
+  const resetBreakRow = (row) => {
+    const thresholdSelect = row.querySelector('select[name="break_threshold_hours"]');
+    const breakSelect = row.querySelector('select[name="break_minutes"]');
+    if (thresholdSelect) {
+      thresholdSelect.value = "";
+    }
+    if (breakSelect) {
+      breakSelect.value = "0";
+    }
+  };
+
+  if (addBreakRule && breakRules) {
+    addBreakRule.addEventListener("click", () => {
+      const baseRow = breakRules.querySelector(".break-rule-row");
+      if (!baseRow) {
+        return;
+      }
+      const newRow = baseRow.cloneNode(true);
+      resetBreakRow(newRow);
+      breakRules.appendChild(newRow);
+    });
+
+    breakRules.addEventListener("click", (event) => {
+      if (!event.target.classList.contains("remove-break-rule")) {
+        return;
+      }
+      const rows = breakRules.querySelectorAll(".break-rule-row");
+      const row = event.target.closest(".break-rule-row");
+      if (!row) {
+        return;
+      }
+      if (rows.length <= 1) {
+        resetBreakRow(row);
+        return;
+      }
+      row.remove();
+    });
+  }
+</script>
 {% endblock %}

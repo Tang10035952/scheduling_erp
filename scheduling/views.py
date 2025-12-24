@@ -96,6 +96,13 @@ def is_manager(user):
         return False
 
 
+def is_store_manager(user):
+    try:
+        return user.is_authenticated and user.userprofile.is_store_manager()
+    except UserProfile.DoesNotExist:
+        return False
+
+
 def is_worker(user):
     try:
         return user.is_authenticated and user.userprofile.role == "worker"
@@ -319,7 +326,7 @@ def scheduling_timeline(request):
         day_list = [month_date.replace(day=i) for i in range(1, days_in_month + 1)]
         holiday_map = build_holiday_map(day_list)
 
-        workers = UserProfile.objects.filter(role="worker").select_related("user").order_by(
+        workers = UserProfile.objects.filter(role__in=("worker", "supervisor")).select_related("user").order_by(
             "sort_order", "name", "user__username"
         )
 
@@ -438,7 +445,7 @@ def scheduling_timeline(request):
     base_end = 24 * 60
     total_minutes = base_end - base_start
 
-    workers = UserProfile.objects.filter(role="worker").select_related("user").order_by(
+    workers = UserProfile.objects.filter(role__in=("worker", "supervisor")).select_related("user").order_by(
         "sort_order", "name", "user__username"
     )
 
@@ -788,7 +795,7 @@ def update_shift(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 def manage_window(request):
     start_date, end_date, has_manager_window, allow_worker_view, allow_worker_edit_shifts, allow_worker_register, break_rules = get_active_window()
     stores = Store.objects.all()
@@ -989,7 +996,7 @@ def worker_schedule(request):
         } for d in date_range]
 
     if allow_worker_view:
-        workers = UserProfile.objects.filter(role="worker").select_related("user").order_by(
+        workers = UserProfile.objects.filter(role__in=("worker", "supervisor")).select_related("user").order_by(
             "sort_order", "name", "user__username"
         )
         shifts = (

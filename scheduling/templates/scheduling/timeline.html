@@ -199,6 +199,13 @@
 .week-table tbody .hours-cell {
     z-index: 3;
 }
+.name-link {
+    color: inherit;
+    text-decoration: none;
+}
+.name-link:hover {
+    text-decoration: underline;
+}
 
 .shift-line {
     display: block;
@@ -540,7 +547,11 @@
                     {% for row in rows %}
                     <tr{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
                         <td class="name-cell">
+                            {% if can_manage_store %}
+                            <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                            {% else %}
                             {{ row.display_name }}
+                            {% endif %}
                         </td>
                         {% if can_manage_store %}
                         <td class="hours-cell">
@@ -604,7 +615,11 @@
                     {% for row in rows %}
                     <tr{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
                         <td class="name-cell">
+                            {% if can_manage_store %}
+                            <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                            {% else %}
                             {{ row.display_name }}
+                            {% endif %}
                         </td>
                         {% if can_manage_store %}
                         <td class="hours-cell">
@@ -668,7 +683,11 @@
                     {% for row in month_rows %}
                     <tr{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
                         <td class="name-cell">
+                            {% if can_manage_store %}
+                            <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                            {% else %}
                             {{ row.display_name }}
+                            {% endif %}
                         </td>
                         {% if can_manage_store %}
                         <td class="hours-cell">

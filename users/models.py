@@ -4,8 +4,9 @@ from django.utils import timezone
 
 class UserProfile(models.Model):
     USER_ROLES = (
-        ('worker', '員工/工讀生'),
-        ('manager', '店長/管理員'),
+        ('worker', '員工'),
+        ('manager', '店長'),
+        ('supervisor', '主管'),
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("名稱", max_length=50, blank=True)
@@ -36,6 +37,9 @@ class UserProfile(models.Model):
     )
 
     def is_manager(self):
+        return self.role in {'manager', 'supervisor'}
+
+    def is_store_manager(self):
         return self.role == 'manager'
 
     def display_name(self):

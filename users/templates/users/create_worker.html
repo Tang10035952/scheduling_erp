@@ -40,6 +40,10 @@
               <input type="text" class="form-control form-control-sm column-filter" data-field="real_name" placeholder="篩選真實姓名">
             </th>
             <th>
+              <div class="filter-label">角色</div>
+              <input type="text" class="form-control form-control-sm column-filter" data-field="role" placeholder="篩選角色">
+            </th>
+            <th>
               <div class="filter-label">年齡</div>
               <input type="text" class="form-control form-control-sm column-filter" data-field="age" placeholder="篩選年齡">
             </th>
@@ -52,6 +56,7 @@
               data-worker-username="{{ worker.username }}"
               data-worker-name="{{ worker.display_name }}"
               data-worker-real-name="{{ worker.real_name }}"
+              data-worker-role="{{ worker.role_label }}"
               data-worker-age="{{ worker.age }}">
             <td class="text-center">{{ forloop.counter }}</td>
             <td>{{ worker.username }}</td>
@@ -64,6 +69,7 @@
               {% endif %}
             </td>
             <td>{{ worker.real_name|default:"-" }}</td>
+            <td>{{ worker.role_label }}</td>
             <td>{{ worker.age }}</td>
             <td class="text-center">
               <form method="post" action="{% url 'users:delete_worker' %}" class="d-inline">

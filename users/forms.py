@@ -156,12 +156,14 @@ EDUCATION_CHOICES = [
     ("其他", "其他"),
 ]
 
+ROLE_CHOICES = [("worker", "員工"), ("supervisor", "主管")]
 
 
 
 class ManagerWorkerCreateForm(UserCreationForm):
     username = forms.CharField(label="帳號", min_length=6, max_length=150)
     display_name = forms.CharField(label="名稱", max_length=50)
+    role = forms.ChoiceField(label="角色", choices=ROLE_CHOICES, required=False)
     real_name = forms.CharField(label="真實姓名", max_length=50)
     gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES)
     birthday = forms.DateField(
@@ -253,6 +255,7 @@ class ManagerWorkerCreateForm(UserCreationForm):
 
 class ManagerWorkerUpdateForm(forms.Form):
     display_name = forms.CharField(label="名稱", max_length=50)
+    role = forms.ChoiceField(label="角色", choices=ROLE_CHOICES, required=False)
     real_name = forms.CharField(label="真實姓名", max_length=50)
     gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES)
     birthday = forms.DateField(
@@ -303,10 +306,6 @@ class ManagerWorkerUpdateForm(forms.Form):
         if cleaned.get("education") == "其他" and not cleaned.get("education_other"):
             self.add_error("education_other", "請補充學歷說明。")
 
-        if self.is_bound:
-            for field_name in ("driver_license_file", "bankbook_file"):
-                if not self.files.get(field_name):
-                    self.add_error(field_name, "請上傳必要附件。")
         for field_name in ("driver_license_file", "bankbook_file"):
             file_obj = self.files.get(field_name)
             if not file_obj:

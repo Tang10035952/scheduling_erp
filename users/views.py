@@ -29,6 +29,16 @@ def is_manager(user):
         return False
 
 
+def is_store_manager(user):
+    try:
+        return user.is_authenticated and user.userprofile.is_store_manager()
+    except UserProfile.DoesNotExist:
+        return False
+
+
+MANAGED_ROLES = ("worker", "supervisor")
+
+
 def get_allow_worker_register():
     latest = SchedulingWindow.objects.order_by("-created_at").first()
     return latest.allow_worker_register if latest else False
@@ -125,7 +135,7 @@ def register_worker(request):
                 user=user,
                 role="worker",
                 name=form.cleaned_data.get("name", ""),
-                sort_order=(UserProfile.objects.filter(role="worker").count() + 1),
+                sort_order=(UserProfile.objects.filter(role__in=MANAGED_ROLES).count() + 1),
             )
             messages.success(request, "註冊成功，請使用帳號登入。")
             return redirect("users:login")
@@ -140,10 +150,10 @@ def register_worker(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 def create_worker(request):
     workers = (
-        UserProfile.objects.filter(role="worker")
+        UserProfile.objects.filter(role__in=MANAGED_ROLES)
         .select_related("user")
         .order_by("sort_order", "name", "user__username")
     )
@@ -159,6 +169,7 @@ def create_worker(request):
                 "real_name": worker.real_name,
                 "age": age if age is not None else "-",
                 "missing_info": missing_info,
+                "role_label": worker.get_role_display(),
             }
         )
 
@@ -172,7 +183,7 @@ def create_worker(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 @require_POST
 @csrf_exempt
 def reorder_workers(request):
@@ -185,7 +196,7 @@ def reorder_workers(request):
     if not isinstance(ordered_ids, list) or not ordered_ids:
         return JsonResponse({"ok": False, "error": "缺少排序資料"}, status=400)
 
-    workers = list(UserProfile.objects.filter(role="worker", id__in=ordered_ids))
+    workers = list(UserProfile.objects.filter(role__in=MANAGED_ROLES, id__in=ordered_ids))
     if len(workers) != len(ordered_ids):
         return JsonResponse({"ok": False, "error": "資料不完整，請重新整理"}, status=400)
 
@@ -204,7 +215,7 @@ def reorder_workers(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 @require_POST
 def delete_worker(request):
     profile_id = request.POST.get("profile_id")
@@ -212,7 +223,7 @@ def delete_worker(request):
         messages.error(request, "缺少員工資料。")
         return redirect("users:create_worker")
 
-    profile = UserProfile.objects.filter(id=profile_id, role="worker").select_related("user").first()
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).select_related("user").first()
     if not profile:
         messages.error(request, "找不到員工資料。")
         return redirect("users:create_worker")
@@ -263,7 +274,7 @@ def _save_worker_document(profile, file_obj, category):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 def worker_create(request):
     if request.method == "POST":
         form = ManagerWorkerCreateForm(request.POST, request.FILES)
@@ -276,7 +287,7 @@ def worker_create(request):
             user.save()
             profile = UserProfile.objects.create(
                 user=user,
-                role="worker",
+                role=form.cleaned_data.get("role") or "worker",
                 name=form.cleaned_data["display_name"].strip(),
                 real_name=form.cleaned_data["real_name"].strip(),
                 gender=form.cleaned_data["gender"],
@@ -292,7 +303,7 @@ def worker_create(request):
                 emergency_contact_relation=form.cleaned_data["emergency_contact_relation"].strip(),
                 emergency_contact_phone=form.cleaned_data["emergency_contact_phone"].strip(),
                 work_experience=form.cleaned_data["work_experience"].strip(),
-                sort_order=(UserProfile.objects.filter(role="worker").count() + 1),
+                sort_order=(UserProfile.objects.filter(role__in=MANAGED_ROLES).count() + 1),
             )
 
             _save_worker_document(profile, request.FILES.get("id_card_front"), "id_card_front")
@@ -317,9 +328,9 @@ def worker_create(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 def worker_detail(request, profile_id):
-    profile = UserProfile.objects.filter(id=profile_id, role="worker").select_related("user").first()
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).select_related("user").first()
     if not profile:
         messages.error(request, "找不到員工資料。")
         return redirect("users:create_worker")
@@ -327,6 +338,9 @@ def worker_detail(request, profile_id):
     if request.method == "POST":
         form = ManagerWorkerUpdateForm(request.POST, request.FILES)
         if form.is_valid():
+            role = form.cleaned_data.get("role")
+            if role:
+                profile.role = role
             profile.name = form.cleaned_data["display_name"].strip()
             profile.real_name = form.cleaned_data["real_name"].strip()
             profile.gender = form.cleaned_data["gender"]
@@ -355,6 +369,7 @@ def worker_detail(request, profile_id):
         form = ManagerWorkerUpdateForm(
             initial={
                 "display_name": profile.name,
+                "role": profile.role,
                 "real_name": profile.real_name,
                 "gender": profile.gender,
                 "birthday": profile.birthday,
@@ -443,6 +458,7 @@ def worker_profile(request):
         form = ManagerWorkerUpdateForm(
             initial={
                 "display_name": profile.name,
+                "role": profile.role,
                 "real_name": profile.real_name,
                 "gender": profile.gender,
                 "birthday": profile.birthday,
@@ -494,12 +510,12 @@ def worker_profile(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 def upload_worker_document(request, profile_id):
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "method not allowed"}, status=405)
 
-    profile = UserProfile.objects.filter(id=profile_id, role="worker").first()
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).first()
     if not profile:
         return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
 
@@ -580,10 +596,10 @@ def upload_worker_document_self(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 @require_POST
 def delete_worker_document(request, profile_id):
-    profile = UserProfile.objects.filter(id=profile_id, role="worker").first()
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).first()
     if not profile:
         return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
 
@@ -629,10 +645,10 @@ def delete_worker_document_self(request):
 
 
 @login_required
-@user_passes_test(is_manager)
+@user_passes_test(is_store_manager)
 @require_POST
 def reset_worker_password(request, profile_id):
-    profile = UserProfile.objects.filter(id=profile_id, role="worker").select_related("user").first()
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).select_related("user").first()
     if not profile:
         return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
 

@@ -61,7 +61,7 @@ class Shift(models.Model):
     employee = models.ForeignKey(
         UserProfile, 
         on_delete=models.CASCADE,
-        limit_choices_to={'role': 'worker'}, # 限制只能排班給員工
+        limit_choices_to={'role__in': ['worker', 'supervisor']}, # 限制只能排班給員工
         verbose_name='員工'
     )
     store = models.ForeignKey(

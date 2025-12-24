@@ -105,15 +105,24 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             {% if user.is_authenticated %}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                {% if user.userprofile.is_manager %}
+                {% if user.userprofile.is_store_manager %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'scheduling:timeline' %}?view=week">員工班表</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'users:create_worker' %}">員工管理</a>
                 </li>
+                {% if user.userprofile.is_store_manager %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'scheduling:manage_window' %}">設定</a>
+                </li>
+                {% endif %}
+                {% elif user.userprofile.is_manager %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'scheduling:timeline' %}?view=week">員工班表</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:worker_profile' %}">基本資料</a>
                 </li>
                 {% else %}
                 <li class="nav-item">

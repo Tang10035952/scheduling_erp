@@ -42,6 +42,15 @@
             <input type="text" class="form-control" value="{{ profile.user.username }}" readonly>
           {% endif %}
         </div>
+        {% if is_manager_view %}
+        <div class="col-md-6">
+          <label class="form-label">角色</label>
+          {{ form.role|add_class:"form-select" }}
+          {% if form.role.errors %}
+            <div class="text-danger small mt-1">{{ form.role.errors.0 }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
         {% if is_create %}
         <div class="col-md-6">
           <label class="form-label">名稱<span class="required-star">*</span></label>

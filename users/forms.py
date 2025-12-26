@@ -79,7 +79,7 @@ class TempPasswordResetForm(forms.Form):
 
 
 class WorkerCreationForm(UserCreationForm):
-    username = forms.CharField(label="帳號", min_length=6, max_length=150)
+    username = forms.CharField(label="帳號", min_length=4, max_length=150)
     name = forms.CharField(label="名稱", max_length=50)
 
     class Meta(UserCreationForm.Meta):
@@ -88,9 +88,9 @@ class WorkerCreationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["username"].widget.attrs.setdefault("placeholder", "帳號至少6碼")
+        self.fields["username"].widget.attrs.setdefault("placeholder", "帳號至少4碼")
         self.fields["name"].widget.attrs.setdefault("placeholder", "名稱中文5字或英文10字內，可中英混合")
-        self.fields["password1"].widget.attrs.setdefault("placeholder", "至少6碼，可純數字或英文字")
+        self.fields["password1"].widget.attrs.setdefault("placeholder", "至少4碼，可純數字或英文字")
         self.fields["password2"].widget.attrs.setdefault("placeholder", "再次輸入密碼")
 
     def clean_username(self):
@@ -161,7 +161,7 @@ ROLE_CHOICES = [("worker", "員工"), ("supervisor", "主管")]
 
 
 class ManagerWorkerCreateForm(UserCreationForm):
-    username = forms.CharField(label="帳號", min_length=6, max_length=150)
+    username = forms.CharField(label="帳號", min_length=4, max_length=150)
     display_name = forms.CharField(label="名稱", max_length=50)
     role = forms.ChoiceField(label="角色", choices=ROLE_CHOICES, required=False)
     real_name = forms.CharField(label="真實姓名", max_length=50)
@@ -197,7 +197,8 @@ class ManagerWorkerCreateForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["password1"].widget.attrs.setdefault("placeholder", "至少6碼，可純數字或英文字")
+        self.fields["username"].widget.attrs.setdefault("placeholder", "帳號至少4碼")
+        self.fields["password1"].widget.attrs.setdefault("placeholder", "至少4碼，可純數字或英文字")
         self.fields["password2"].widget.attrs.setdefault("placeholder", "再次輸入密碼")
 
     def clean_username(self):

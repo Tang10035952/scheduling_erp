@@ -168,6 +168,7 @@ def create_worker(request):
                 "display_name": worker.name,
                 "real_name": worker.real_name,
                 "age": age if age is not None else "-",
+                "mobile_phone": worker.mobile_phone,
                 "missing_info": missing_info,
                 "role_label": worker.get_role_display(),
             }

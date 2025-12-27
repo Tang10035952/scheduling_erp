@@ -28,10 +28,6 @@
               序號
             </th>
             <th>
-              <div class="filter-label">帳號</div>
-              <input type="text" class="form-control form-control-sm column-filter" data-field="username" placeholder="篩選帳號">
-            </th>
-            <th>
               <div class="filter-label">名稱</div>
               <input type="text" class="form-control form-control-sm column-filter" data-field="name" placeholder="篩選名稱">
             </th>
@@ -47,6 +43,10 @@
               <div class="filter-label">年齡</div>
               <input type="text" class="form-control form-control-sm column-filter" data-field="age" placeholder="篩選年齡">
             </th>
+            <th>
+              <div class="filter-label">電話</div>
+              <input type="text" class="form-control form-control-sm column-filter" data-field="mobile_phone" placeholder="篩選電話">
+            </th>
             <th class="text-center align-top">操作</th>
           </tr>
         </thead>
@@ -57,9 +57,9 @@
               data-worker-name="{{ worker.display_name }}"
               data-worker-real-name="{{ worker.real_name }}"
               data-worker-role="{{ worker.role_label }}"
-              data-worker-age="{{ worker.age }}">
+              data-worker-age="{{ worker.age }}"
+              data-worker-mobile-phone="{{ worker.mobile_phone }}">
             <td class="text-center">{{ forloop.counter }}</td>
-            <td>{{ worker.username }}</td>
             <td>
               <a href="{% url 'users:worker_detail' worker.profile.id %}" class="worker-name-link">
                 {{ worker.display_name|default:worker.username }}
@@ -71,6 +71,7 @@
             <td>{{ worker.real_name|default:"-" }}</td>
             <td>{{ worker.role_label }}</td>
             <td>{{ worker.age }}</td>
+            <td>{{ worker.mobile_phone|default:"-" }}</td>
             <td class="text-center">
               <form method="post" action="{% url 'users:delete_worker' %}" class="d-inline">
                 {% csrf_token %}

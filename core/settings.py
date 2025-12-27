@@ -91,11 +91,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'NAME': os.getenv('DB_NAME', 'staging_db'),
+        'USER': os.getenv('DB_USER', 'staging_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'staging_pw'),
+        'HOST': os.getenv('DB_HOST', '35.221.202.58'),
+        'PORT': os.getenv('DB_PORT', '3307'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }

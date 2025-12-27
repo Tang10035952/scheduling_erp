@@ -100,42 +100,42 @@
       <h6 class="mb-3">基本資料</h6>
       <div class="row g-3">
         <div class="col-md-6">
-          <label class="form-label">真實姓名<span class="required-star">*</span></label>
+          <label class="form-label">真實姓名{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.real_name|add_class:"form-control" }}
           {% if form.real_name.errors %}
             <div class="text-danger small mt-1">{{ form.real_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-3">
-          <label class="form-label">性別<span class="required-star">*</span></label>
+          <label class="form-label">性別{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.gender|add_class:"form-select" }}
           {% if form.gender.errors %}
             <div class="text-danger small mt-1">{{ form.gender.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-3">
-          <label class="form-label">生日<span class="required-star">*</span></label>
+          <label class="form-label">生日{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.birthday|add_class:"form-control" }}
           {% if form.birthday.errors %}
             <div class="text-danger small mt-1">{{ form.birthday.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label">身分證字號<span class="required-star">*</span></label>
+          <label class="form-label">身分證字號{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.id_number|add_class:"form-control" }}
           {% if form.id_number.errors %}
             <div class="text-danger small mt-1">{{ form.id_number.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label">婚姻狀況<span class="required-star">*</span></label>
+          <label class="form-label">婚姻狀況{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.marital_status|add_class:"form-select" }}
           {% if form.marital_status.errors %}
             <div class="text-danger small mt-1">{{ form.marital_status.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label">學歷<span class="required-star">*</span></label>
+          <label class="form-label">學歷{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.education|add_class:"form-select" }}
           {% if form.education.errors %}
             <div class="text-danger small mt-1">{{ form.education.errors.0 }}</div>
@@ -149,7 +149,7 @@
           {% endif %}
         </div>
         <div class="col-md-6">
-          <label class="form-label">通訊地址<span class="required-star">*</span></label>
+          <label class="form-label">通訊地址{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.contact_address|add_class:"form-control" }}
           {% if form.contact_address.errors %}
             <div class="text-danger small mt-1">{{ form.contact_address.errors.0 }}</div>
@@ -157,7 +157,7 @@
         </div>
         <div class="col-md-6">
           <label class="form-label d-flex align-items-center justify-content-between">
-            <span>戶籍地址<span class="required-star">*</span></span>
+            <span>戶籍地址{% if not is_create %}<span class="required-star">*</span>{% endif %}</span>
             <span class="form-check small">
               <input class="form-check-input" type="checkbox" id="sameAddressToggle">
               <label class="form-check-label" for="sameAddressToggle">同通訊地址</label>
@@ -169,14 +169,14 @@
           {% endif %}
         </div>
         <div class="col-md-6">
-          <label class="form-label">手機電話<span class="required-star">*</span></label>
+          <label class="form-label">手機電話{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.mobile_phone|add_class:"form-control" }}
           {% if form.mobile_phone.errors %}
             <div class="text-danger small mt-1">{{ form.mobile_phone.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6">
-          <label class="form-label">緊急聯絡人<span class="required-star">*</span></label>
+          <label class="form-label">緊急聯絡人{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           <div class="row g-2">
             <div class="col-12 col-md-4">
               <label class="form-label small text-muted">姓名</label>
@@ -202,7 +202,7 @@
           </div>
         </div>
         <div class="col-md-12">
-          <label class="form-label">工作經歷<span class="required-star">*</span></label>
+          <label class="form-label">工作經歷{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.work_experience|add_class:"form-control" }}
           <small class="text-muted d-block mt-1">服務機關、任職期間、離職原因，若沒有打無即可。</small>
           {% if form.work_experience.errors %}
@@ -216,7 +216,7 @@
       <div class="text-danger small mb-3">上傳時避免圖片反光，確保文字清晰可辨。檔案格式限 JPG/PNG/PDF/HEIC，單檔最大 10MB。</div>
       <div class="row g-3" data-upload-form="{% if not is_create %}true{% else %}false{% endif %}" data-profile-id="{{ profile.id|default:'' }}" data-upload-url="{{ upload_url|default:'' }}" data-delete-url="{{ delete_url|default:'' }}">
         <div class="col-md-6">
-          <label class="form-label">身分證正面{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label class="form-label">身分證正面</label>
           <label for="{{ form.id_card_front.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
           {{ form.id_card_front|add_class:"form-control upload-input" }}
           {% if form.id_card_front.errors %}
@@ -239,7 +239,7 @@
           </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">身分證反面{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label class="form-label">身分證反面</label>
           <label for="{{ form.id_card_back.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
           {{ form.id_card_back|add_class:"form-control upload-input" }}
           {% if form.id_card_back.errors %}
@@ -262,7 +262,7 @@
           </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">駕照{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label class="form-label">駕照</label>
           <label for="{{ form.driver_license_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
           {{ form.driver_license_file|add_class:"form-control upload-input" }}
           {% if form.driver_license_file.errors %}
@@ -285,7 +285,7 @@
           </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">存摺影本{% if is_create %}<span class="required-star">*</span>{% endif %}</label>
+          <label class="form-label">存摺影本</label>
           <label for="{{ form.bankbook_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
           {{ form.bankbook_file|add_class:"form-control upload-input" }}
           {% if form.bankbook_file.errors %}

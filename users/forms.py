@@ -6,6 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from .models import UserProfile
 
@@ -164,27 +165,29 @@ class ManagerWorkerCreateForm(UserCreationForm):
     username = forms.CharField(label="帳號", min_length=4, max_length=150)
     display_name = forms.CharField(label="名稱", max_length=50)
     role = forms.ChoiceField(label="角色", choices=ROLE_CHOICES, required=False)
-    real_name = forms.CharField(label="真實姓名", max_length=50)
-    gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES)
+    real_name = forms.CharField(label="真實姓名", max_length=50, required=False)
+    gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES, required=False)
     birthday = forms.DateField(
         label="生日",
         input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        required=False,
     )
-    id_number = forms.CharField(label="身分證字號", max_length=10)
-    marital_status = forms.ChoiceField(label="婚姻狀況", choices=MARITAL_CHOICES)
-    education = forms.ChoiceField(label="學歷", choices=EDUCATION_CHOICES)
+    id_number = forms.CharField(label="身分證字號", max_length=10, required=False)
+    marital_status = forms.ChoiceField(label="婚姻狀況", choices=MARITAL_CHOICES, required=False)
+    education = forms.ChoiceField(label="學歷", choices=EDUCATION_CHOICES, required=False)
     education_other = forms.CharField(label="學歷補充說明", required=False, max_length=10)
-    contact_address = forms.CharField(label="通訊地址", max_length=255)
-    registered_address = forms.CharField(label="戶籍地址", max_length=255)
-    mobile_phone = forms.CharField(label="手機電話", max_length=10)
-    emergency_contact_name = forms.CharField(label="緊急聯絡人姓名", max_length=10)
-    emergency_contact_relation = forms.CharField(label="緊急聯絡人關係", max_length=10)
-    emergency_contact_phone = forms.CharField(label="緊急聯絡人電話", max_length=10)
+    contact_address = forms.CharField(label="通訊地址", max_length=255, required=False)
+    registered_address = forms.CharField(label="戶籍地址", max_length=255, required=False)
+    mobile_phone = forms.CharField(label="手機電話", max_length=10, required=False)
+    emergency_contact_name = forms.CharField(label="緊急聯絡人姓名", max_length=10, required=False)
+    emergency_contact_relation = forms.CharField(label="緊急聯絡人關係", max_length=10, required=False)
+    emergency_contact_phone = forms.CharField(label="緊急聯絡人電話", max_length=10, required=False)
     work_experience = forms.CharField(
         label="工作經歷",
         max_length=50,
         widget=forms.Textarea(attrs={"rows": 3, "maxlength": 50}),
+        required=False,
     )
     id_card_front = forms.FileField(label="身分證正面", required=False)
     id_card_back = forms.FileField(label="身分證反面", required=False)
@@ -200,6 +203,7 @@ class ManagerWorkerCreateForm(UserCreationForm):
         self.fields["username"].widget.attrs.setdefault("placeholder", "帳號至少4碼")
         self.fields["password1"].widget.attrs.setdefault("placeholder", "至少4碼，可純數字或英文字")
         self.fields["password2"].widget.attrs.setdefault("placeholder", "再次輸入密碼")
+        self.fields["birthday"].widget.attrs.setdefault("max", timezone.localdate().isoformat())
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
@@ -209,18 +213,30 @@ class ManagerWorkerCreateForm(UserCreationForm):
 
     def clean_id_number(self):
         value = (self.cleaned_data.get("id_number") or "").strip()
+        if not value:
+            return value
         if not re.fullmatch(r"[A-Z][0-9]{9}", value):
             raise forms.ValidationError("身分證字號格式不正確。")
         return value
 
+    def clean_birthday(self):
+        value = self.cleaned_data.get("birthday")
+        if value and value > timezone.localdate():
+            raise forms.ValidationError("生日不可為未來日期。")
+        return value
+
     def clean_mobile_phone(self):
         value = (self.cleaned_data.get("mobile_phone") or "").strip()
+        if not value:
+            return value
         if not re.fullmatch(r"[0-9]{10}", value):
             raise forms.ValidationError("手機電話格式不正確，需為 10 碼數字。")
         return value
 
     def clean_emergency_contact_phone(self):
         value = (self.cleaned_data.get("emergency_contact_phone") or "").strip()
+        if not value:
+            return value
         if not re.fullmatch(r"[0-9]{10}", value):
             raise forms.ValidationError("緊急聯絡人電話需為 10 碼數字。")
         return value
@@ -230,10 +246,6 @@ class ManagerWorkerCreateForm(UserCreationForm):
         if cleaned.get("education") == "其他" and not cleaned.get("education_other"):
             self.add_error("education_other", "請補充學歷說明。")
 
-        if self.is_bound:
-            for field_name in ("id_card_front", "id_card_back"):
-                if not self.files.get(field_name):
-                    self.add_error(field_name, "請上傳身分證正反面。")
         for field_name in ("id_card_front", "id_card_back"):
             file_obj = self.files.get(field_name)
             if not file_obj:
@@ -284,10 +296,20 @@ class ManagerWorkerUpdateForm(forms.Form):
     driver_license_file = forms.FileField(label="駕照", required=False)
     bankbook_file = forms.FileField(label="存摺影本", required=False)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["birthday"].widget.attrs.setdefault("max", timezone.localdate().isoformat())
+
     def clean_id_number(self):
         value = (self.cleaned_data.get("id_number") or "").strip()
         if not re.fullmatch(r"[A-Z][0-9]{9}", value):
             raise forms.ValidationError("身分證字號格式不正確。")
+        return value
+
+    def clean_birthday(self):
+        value = self.cleaned_data.get("birthday")
+        if value and value > timezone.localdate():
+            raise forms.ValidationError("生日不可為未來日期。")
         return value
 
     def clean_mobile_phone(self):

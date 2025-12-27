@@ -285,24 +285,25 @@ def worker_create(request):
             user.first_name = ""
             user.last_name = ""
             user.save()
+            display_name = (form.cleaned_data.get("display_name") or "").strip() or user.username
             profile = UserProfile.objects.create(
                 user=user,
                 role=form.cleaned_data.get("role") or "worker",
-                name=form.cleaned_data["display_name"].strip(),
-                real_name=form.cleaned_data["real_name"].strip(),
-                gender=form.cleaned_data["gender"],
-                birthday=form.cleaned_data["birthday"],
-                id_number=form.cleaned_data["id_number"].strip(),
-                marital_status=form.cleaned_data["marital_status"],
-                education=form.cleaned_data["education"],
-                education_other=form.cleaned_data.get("education_other", "").strip(),
-                contact_address=form.cleaned_data["contact_address"].strip(),
-                registered_address=form.cleaned_data["registered_address"].strip(),
-                mobile_phone=form.cleaned_data["mobile_phone"].strip(),
-                emergency_contact_name=form.cleaned_data["emergency_contact_name"].strip(),
-                emergency_contact_relation=form.cleaned_data["emergency_contact_relation"].strip(),
-                emergency_contact_phone=form.cleaned_data["emergency_contact_phone"].strip(),
-                work_experience=form.cleaned_data["work_experience"].strip(),
+                name=display_name,
+                real_name=(form.cleaned_data.get("real_name") or "").strip(),
+                gender=form.cleaned_data.get("gender") or "",
+                birthday=form.cleaned_data.get("birthday"),
+                id_number=(form.cleaned_data.get("id_number") or "").strip(),
+                marital_status=form.cleaned_data.get("marital_status") or "",
+                education=form.cleaned_data.get("education") or "",
+                education_other=(form.cleaned_data.get("education_other") or "").strip(),
+                contact_address=(form.cleaned_data.get("contact_address") or "").strip(),
+                registered_address=(form.cleaned_data.get("registered_address") or "").strip(),
+                mobile_phone=(form.cleaned_data.get("mobile_phone") or "").strip(),
+                emergency_contact_name=(form.cleaned_data.get("emergency_contact_name") or "").strip(),
+                emergency_contact_relation=(form.cleaned_data.get("emergency_contact_relation") or "").strip(),
+                emergency_contact_phone=(form.cleaned_data.get("emergency_contact_phone") or "").strip(),
+                work_experience=(form.cleaned_data.get("work_experience") or "").strip(),
                 sort_order=(UserProfile.objects.filter(role__in=MANAGED_ROLES).count() + 1),
             )
 

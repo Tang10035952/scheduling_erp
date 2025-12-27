@@ -5,11 +5,11 @@ import random
 import string
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
-os.environ.setdefault('DB_NAME', 'scheduling_erp_db')
-os.environ.setdefault('DB_USER', 'scheduling_erp_admin')
-os.environ.setdefault('DB_PASSWORD', 'scheduling_erp_password')
+os.environ.setdefault('DB_NAME', 'staging_db')
+os.environ.setdefault('DB_USER', 'staging_user')
+os.environ.setdefault('DB_PASSWORD', 'staging_pw')
 os.environ.setdefault('DB_HOST', '35.221.202.58')
-os.environ.setdefault('DB_PORT', '3306')
+os.environ.setdefault('DB_PORT', '3307')
 django.setup()
 
 from django.contrib.auth.models import User

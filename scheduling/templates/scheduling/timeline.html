@@ -206,6 +206,9 @@
 .name-link:hover {
     text-decoration: underline;
 }
+.manager-row .name-cell {
+    background-color: #d1fae5;
+}
 
 .shift-line {
     display: block;
@@ -322,6 +325,9 @@
 
 .month-table tbody .hours-cell {
     z-index: 3;
+}
+.month-table .manager-row .name-cell {
+    background-color: #d1fae5;
 }
 
 .month-scroll {
@@ -545,7 +551,7 @@
                 </thead>
                 <tbody>
                     {% for row in rows %}
-                    <tr{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
+                    <tr{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
                         <td class="name-cell">
                             {% if can_manage_store %}
                             <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
@@ -613,7 +619,7 @@
                 </thead>
                 <tbody>
                     {% for row in rows %}
-                    <tr{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
+                    <tr{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
                         <td class="name-cell">
                             {% if can_manage_store %}
                             <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
@@ -681,7 +687,7 @@
                 </thead>
                 <tbody>
                     {% for row in month_rows %}
-                    <tr{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
+                    <tr{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
                         <td class="name-cell">
                             {% if can_manage_store %}
                             <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>

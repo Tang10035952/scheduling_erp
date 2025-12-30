@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
+from django.db.models import Case, IntegerField, Value, When
 from django.core.files.storage import default_storage
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -36,7 +37,7 @@ def is_store_manager(user):
         return False
 
 
-MANAGED_ROLES = ("worker", "supervisor")
+MANAGED_ROLES = ("worker", "supervisor", "manager")
 
 
 def get_allow_worker_register():
@@ -152,10 +153,16 @@ def register_worker(request):
 @login_required
 @user_passes_test(is_store_manager)
 def create_worker(request):
+    role_order = Case(
+        When(role="manager", then=Value(1)),
+        default=Value(0),
+        output_field=IntegerField(),
+    )
     workers = (
         UserProfile.objects.filter(role__in=MANAGED_ROLES)
+        .annotate(role_order=role_order)
         .select_related("user")
-        .order_by("sort_order", "name", "user__username")
+        .order_by("role_order", "sort_order", "name", "user__username")
     )
     worker_rows = []
     for worker in workers:

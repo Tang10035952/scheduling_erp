@@ -1,6 +1,6 @@
 # scheduling/views.py
 from django.shortcuts import render
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.deletion import ProtectedError
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -322,14 +322,21 @@ def scheduling_timeline(request):
         return f"{hours:02d}:{minutes:02d}"
 
     if view == "month":
+        role_order = Case(
+            When(role="manager", then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        )
         _, days_in_month = month_calendar.monthrange(month_date.year, month_date.month)
         day_list = [month_date.replace(day=i) for i in range(1, days_in_month + 1)]
         holiday_map = build_holiday_map(day_list)
 
         workers = UserProfile.objects.filter(
-            role__in=("worker", "supervisor"),
+            role__in=("worker", "supervisor", "manager"),
             employment_status="active",
-        ).select_related("user").order_by("sort_order", "name", "user__username")
+        ).annotate(role_order=role_order).select_related("user").order_by(
+            "role_order", "sort_order", "name", "user__username"
+        )
 
         shifts_qs = Shift.objects.filter(date__in=day_list, is_published=True)
         if store_query is not None:
@@ -446,10 +453,17 @@ def scheduling_timeline(request):
     base_end = 24 * 60
     total_minutes = base_end - base_start
 
+    role_order = Case(
+        When(role="manager", then=Value(1)),
+        default=Value(0),
+        output_field=IntegerField(),
+    )
     workers = UserProfile.objects.filter(
-        role__in=("worker", "supervisor"),
+        role__in=("worker", "supervisor", "manager"),
         employment_status="active",
-    ).select_related("user").order_by("sort_order", "name", "user__username")
+    ).annotate(role_order=role_order).select_related("user").order_by(
+        "role_order", "sort_order", "name", "user__username"
+    )
 
     shifts_qs = Shift.objects.filter(date__in=date_range, is_published=True)
     if store_query is not None:

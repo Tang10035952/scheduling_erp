@@ -1,6 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+from django.core.files.storage import default_storage
 
 class UserProfile(models.Model):
     USER_ROLES = (
@@ -95,3 +99,11 @@ class WorkerDocument(models.Model):
 
     def __str__(self):
         return f"{self.profile_id}:{self.category}"
+
+
+@receiver(post_delete, sender=WorkerDocument)
+def _delete_worker_document_file(sender, instance, **kwargs):
+    if not instance.file:
+        return
+    if default_storage.exists(instance.file.name):
+        instance.file.delete(save=False)

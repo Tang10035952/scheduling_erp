@@ -347,6 +347,7 @@ def worker_create(request):
             _save_worker_document(profile, request.FILES.get("id_card_back"), "id_card_back")
             _save_worker_document(profile, request.FILES.get("driver_license_file"), "driver_license")
             _save_worker_document(profile, request.FILES.get("bankbook_file"), "bankbook")
+            _save_worker_document(profile, request.FILES.get("other_file"), "other")
 
             messages.success(request, "員工資料已建立。")
             return redirect("users:worker_detail", profile_id=profile.id)
@@ -399,6 +400,7 @@ def worker_detail(request, profile_id):
             _save_worker_document(profile, request.FILES.get("id_card_back"), "id_card_back")
             _save_worker_document(profile, request.FILES.get("driver_license_file"), "driver_license")
             _save_worker_document(profile, request.FILES.get("bankbook_file"), "bankbook")
+            _save_worker_document(profile, request.FILES.get("other_file"), "other")
 
             messages.success(request, "員工資料已更新。")
             return redirect("users:worker_detail", profile_id=profile.id)
@@ -436,6 +438,9 @@ def worker_detail(request, profile_id):
         ),
         "bankbook": _document_if_exists(
             profile.documents.filter(category="bankbook").first()
+        ),
+        "other": _document_if_exists(
+            profile.documents.filter(category="other").first()
         ),
     }
 
@@ -488,6 +493,7 @@ def worker_profile(request):
             _save_worker_document(profile, request.FILES.get("id_card_back"), "id_card_back")
             _save_worker_document(profile, request.FILES.get("driver_license_file"), "driver_license")
             _save_worker_document(profile, request.FILES.get("bankbook_file"), "bankbook")
+            _save_worker_document(profile, request.FILES.get("other_file"), "other")
 
             messages.success(request, "基本資料已更新。")
             return redirect("users:worker_profile")
@@ -526,6 +532,9 @@ def worker_profile(request):
         "bankbook": _document_if_exists(
             profile.documents.filter(category="bankbook").first()
         ),
+        "other": _document_if_exists(
+            profile.documents.filter(category="other").first()
+        ),
     }
 
     show_profile_warning = _profile_missing_required_info(profile)
@@ -561,7 +570,7 @@ def upload_worker_document(request, profile_id):
     if not category or not file_obj:
         return JsonResponse({"ok": False, "error": "缺少檔案或類別"}, status=400)
 
-    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}
+    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook", "other"}
     if category not in allowed_categories:
         return JsonResponse({"ok": False, "error": "檔案類別錯誤"}, status=400)
 
@@ -605,7 +614,7 @@ def upload_worker_document_self(request):
     if not category or not file_obj:
         return JsonResponse({"ok": False, "error": "缺少檔案或類別"}, status=400)
 
-    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}
+    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook", "other"}
     if category not in allowed_categories:
         return JsonResponse({"ok": False, "error": "檔案類別錯誤"}, status=400)
 
@@ -641,7 +650,7 @@ def delete_worker_document(request, profile_id):
         return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
 
     category = request.POST.get("category")
-    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}
+    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook", "other"}
     if category not in allowed_categories:
         return JsonResponse({"ok": False, "error": "檔案類別錯誤"}, status=400)
 
@@ -667,7 +676,7 @@ def delete_worker_document_self(request):
         return JsonResponse({"ok": False, "error": "權限不足"}, status=403)
 
     category = request.POST.get("category")
-    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook"}
+    allowed_categories = {"id_card_front", "id_card_back", "driver_license", "bankbook", "other"}
     if category not in allowed_categories:
         return JsonResponse({"ok": False, "error": "檔案類別錯誤"}, status=400)
 

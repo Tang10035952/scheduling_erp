@@ -101,6 +101,7 @@ class WorkerDocument(models.Model):
         ("id_card_back", "身分證反面"),
         ("driver_license", "駕照"),
         ("bankbook", "存摺"),
+        ("other", "其他"),
     )
     profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="documents")
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)

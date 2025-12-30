@@ -193,6 +193,7 @@ class ManagerWorkerCreateForm(UserCreationForm):
     id_card_back = forms.FileField(label="身分證反面", required=False)
     driver_license_file = forms.FileField(label="駕照", required=False)
     bankbook_file = forms.FileField(label="存摺影本", required=False)
+    other_file = forms.FileField(label="其他", required=False)
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -254,7 +255,7 @@ class ManagerWorkerCreateForm(UserCreationForm):
                 self.add_error(field_name, "身分證檔案需為 JPG/PNG/HEIC。")
             if file_obj.size > 10 * 1024 * 1024:
                 self.add_error(field_name, "檔案大小不可超過 10MB。")
-        for field_name in ("driver_license_file", "bankbook_file"):
+        for field_name in ("driver_license_file", "bankbook_file", "other_file"):
             file_obj = self.files.get(field_name)
             if not file_obj:
                 continue
@@ -295,6 +296,7 @@ class ManagerWorkerUpdateForm(forms.Form):
     id_card_back = forms.FileField(label="身分證反面", required=False)
     driver_license_file = forms.FileField(label="駕照", required=False)
     bankbook_file = forms.FileField(label="存摺影本", required=False)
+    other_file = forms.FileField(label="其他", required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -329,7 +331,7 @@ class ManagerWorkerUpdateForm(forms.Form):
         if cleaned.get("education") == "其他" and not cleaned.get("education_other"):
             self.add_error("education_other", "請補充學歷說明。")
 
-        for field_name in ("driver_license_file", "bankbook_file"):
+        for field_name in ("driver_license_file", "bankbook_file", "other_file"):
             file_obj = self.files.get(field_name)
             if not file_obj:
                 continue

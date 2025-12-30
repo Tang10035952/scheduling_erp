@@ -217,7 +217,7 @@
       <div class="row g-3" data-upload-form="{% if not is_create %}true{% else %}false{% endif %}" data-profile-id="{{ profile.id|default:'' }}" data-upload-url="{{ upload_url|default:'' }}" data-delete-url="{{ delete_url|default:'' }}">
         <div class="col-md-6">
           <label class="form-label">身分證正面</label>
-          <label for="{{ form.id_card_front.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          <label for="{{ form.id_card_front.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳檔案</label>
           {{ form.id_card_front|add_class:"form-control upload-input" }}
           {% if form.id_card_front.errors %}
             <div class="text-danger small mt-1">{{ form.id_card_front.errors.0 }}</div>
@@ -240,7 +240,7 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">身分證反面</label>
-          <label for="{{ form.id_card_back.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          <label for="{{ form.id_card_back.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳檔案</label>
           {{ form.id_card_back|add_class:"form-control upload-input" }}
           {% if form.id_card_back.errors %}
             <div class="text-danger small mt-1">{{ form.id_card_back.errors.0 }}</div>
@@ -263,7 +263,7 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">駕照</label>
-          <label for="{{ form.driver_license_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          <label for="{{ form.driver_license_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳檔案</label>
           {{ form.driver_license_file|add_class:"form-control upload-input" }}
           {% if form.driver_license_file.errors %}
             <div class="text-danger small mt-1">{{ form.driver_license_file.errors.0 }}</div>
@@ -286,7 +286,7 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">存摺影本</label>
-          <label for="{{ form.bankbook_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳圖片</label>
+          <label for="{{ form.bankbook_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳檔案</label>
           {{ form.bankbook_file|add_class:"form-control upload-input" }}
           {% if form.bankbook_file.errors %}
             <div class="text-danger small mt-1">{{ form.bankbook_file.errors.0 }}</div>
@@ -301,6 +301,29 @@
               {% with doc=documents.bankbook %}
                 <a href="{{ doc.file.url }}" class="doc-preview-link" data-filename="{{ doc.file.name|cut:"worker_documents/" }}">{{ doc.file.name|cut:"worker_documents/" }}</a>
                 <button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="bankbook">刪除</button>
+              {% endwith %}
+          {% elif not is_create %}
+              <span class="text-muted">未上傳</span>
+          {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">其他</label>
+          <label for="{{ form.other_file.id_for_label }}" class="btn btn-outline-secondary btn-sm">上傳檔案</label>
+          {{ form.other_file|add_class:"form-control upload-input" }}
+          {% if form.other_file.errors %}
+            <div class="text-danger small mt-1">{{ form.other_file.errors.0 }}</div>
+          {% endif %}
+          <div class="upload-progress mt-2 d-none">
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="upload-preview mt-2">
+          {% if not is_create and documents.other %}
+              {% with doc=documents.other %}
+                <a href="{{ doc.file.url }}" class="doc-preview-link" data-filename="{{ doc.file.name|cut:"worker_documents/" }}">{{ doc.file.name|cut:"worker_documents/" }}</a>
+                <button type="button" class="btn btn-outline-danger btn-sm ms-2 doc-delete-btn" data-category="other">刪除</button>
               {% endwith %}
           {% elif not is_create %}
               <span class="text-muted">未上傳</span>
@@ -710,6 +733,8 @@
         category = "driver_license";
       } else if (name === "bankbook_file") {
         category = "bankbook";
+      } else if (name === "other_file") {
+        category = "other";
       }
       if (!category) return;
       inputEl.addEventListener("change", () => uploadFile(inputEl, category, allowPdf));

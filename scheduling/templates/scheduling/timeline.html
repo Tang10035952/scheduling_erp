@@ -1885,6 +1885,10 @@ const applyStoreFilter = () => {
     const allowEmptyRows = showEmptyRowsInput && showEmptyRowsInput.checked;
     const applyRowVisibility = (row, selector) => {
         const employeeId = (row.dataset.employeeId || "").trim();
+        if (allowedEmployeeId && employeeId && String(employeeId) === String(allowedEmployeeId)) {
+            row.classList.remove("d-none");
+            return;
+        }
         const employeeMatch = showAllEmployees || !employeeId || employeeSet.has(employeeId);
         if (!employeeMatch) {
             row.classList.add("d-none");

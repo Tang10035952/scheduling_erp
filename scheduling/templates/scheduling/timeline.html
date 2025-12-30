@@ -50,6 +50,38 @@
     text-align: center;
 }
 
+.timeline-header .timeline-name {
+    position: sticky;
+    left: 0;
+    z-index: 9;
+    background: #f8fafc;
+    box-shadow: 2px 0 0 #e5e7eb;
+}
+
+.timeline-row .timeline-name {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: #fff;
+    box-shadow: 2px 0 0 #e5e7eb;
+}
+
+.timeline-header .timeline-hours {
+    position: sticky;
+    left: 180px;
+    z-index: 8;
+    background: #f8fafc;
+    box-shadow: 2px 0 0 #e5e7eb;
+}
+
+.timeline-row .timeline-hours {
+    position: sticky;
+    left: 180px;
+    z-index: 4;
+    background: #fff;
+    box-shadow: 2px 0 0 #e5e7eb;
+}
+
 .timeline-hours {
     padding: 12px 10px;
     display: flex;
@@ -563,6 +595,10 @@
     .timeline-hour {
         font-size: 0.85rem;
     }
+    .timeline-header .timeline-hours,
+    .timeline-row .timeline-hours {
+        left: 120px;
+    }
 }
 
 @media (max-width: 720px) {
@@ -723,7 +759,7 @@
             <a class="btn btn-outline-secondary {% if day_layout != 'timeline' %}active{% endif %}"
                href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=table{% if show_empty_rows %}&show_empty=1{% endif %}">表格</a>
             <a class="btn btn-outline-secondary {% if day_layout == 'timeline' %}active{% endif %}"
-               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=timeline{% if show_empty_rows %}&show_empty=1{% endif %}">垂直時間軸</a>
+               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=timeline{% if show_empty_rows %}&show_empty=1{% endif %}">時間軸</a>
         </div>
     </div>
     {% endif %}
@@ -741,76 +777,62 @@
     {% if view == 'day' %}
         {% if day_layout == 'timeline' %}
             <div class="day-timeline-scroll week-scroll">
-                <div class="timeline-vertical"
-                     style="--timeline-employee-columns: {{ timeline_employee_columns }}; --timeline-total-minutes: {{ timeline_total_minutes }}; --timeline-row-count: {{ timeline_row_count }};">
-                    <div class="timeline-vertical-header">
-                        <div class="timeline-time-header">時間</div>
-                        {% if rows %}
-                            {% for row in rows %}
-                            <div class="timeline-employee-header{% if row.employee.role == "manager" %} manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}">
-                                {% if can_manage_store %}
-                                <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
-                                {% else %}
-                                {{ row.display_name }}
-                                {% endif %}
-                                {% if can_manage_store %}
-                                <span class="timeline-employee-hours">{{ row.scheduled_hours }}</span>
-                                {% endif %}
-                            </div>
+                <div class="timeline-header {% if can_manage_store %}timeline-with-hours{% endif %}">
+                    <div class="timeline-name">員工</div>
+                    {% if can_manage_store %}
+                    <div class="timeline-hours">已排班</div>
+                    {% endif %}
+                    <div class="timeline-grid-header" style="--timeline-columns: {{ timeline_columns }};">
+                        {% for hour in timeline_hours %}
+                        <div class="timeline-hour">{{ hour|stringformat:"02d" }}:00</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% for row in rows %}
+                {% with day=row.days.0 %}
+                <div class="timeline-row {% if can_manage_store %}timeline-with-hours{% endif %}{% if row.employee.role == "manager" %} manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"
+                     data-employee-id="{{ row.employee.id }}"
+                     data-employee-name="{{ row.display_name }}">
+                    <div class="timeline-name">
+                        {% if can_manage_store %}
+                        <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                        {% else %}
+                        {{ row.display_name }}
+                        {% endif %}
+                    </div>
+                    {% if can_manage_store %}
+                    <div class="timeline-hours">
+                        <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="timeline-grid"
+                         data-date="{{ day.date_str }}"
+                         style="--timeline-columns: {{ timeline_columns }};">
+                        {% if day.shifts %}
+                            {% for shift in day.shifts %}
+                            <span class="shift-block"
+                                  data-id="{{ shift.id }}"
+                                  data-employee="{{ row.display_name }}"
+                                  data-employee-id="{{ row.employee.id }}"
+                                  data-date="{{ day.date_str }}"
+                                  data-start="{{ shift.start_label }}"
+                                  data-end="{{ shift.end_label }}"
+                                  data-note="{{ shift.note|default_if_none:''|escape }}"
+                                  data-break-minutes="{{ shift.break_minutes }}"
+                                  data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                                  data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                                  title="{{ shift.note|default_if_none:''|escape }}"
+                                  style="left: {{ shift.offset_pct }}%; width: {{ shift.width_pct }}%; --shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                                {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
+                            </span>
                             {% endfor %}
                         {% else %}
-                            <div class="timeline-employee-header timeline-empty">—</div>
+                            <span class="row-empty">—</span>
                         {% endif %}
                     </div>
-                    <div class="timeline-time-column">
-                        {% for marker in timeline_markers %}
-                        <div class="timeline-time-label" style="top: {{ marker.offset_pct }}%;">{{ marker.label }}</div>
-                        {% endfor %}
-                        {% if timeline_show_end_label %}
-                        <div class="timeline-time-label timeline-time-end" style="top: {{ timeline_end_offset_pct }}%;">{{ timeline_end_label }}</div>
-                        {% endif %}
-                    </div>
-                    {% if rows %}
-                        {% for row in rows %}
-                        {% with day=row.days.0 %}
-                        <div class="timeline-employee-column{% if row.employee.role == "manager" %} manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"
-                             data-employee-id="{{ row.employee.id }}"
-                             data-employee-name="{{ row.display_name }}">
-                            <div class="timeline-employee-grid timeline-grid timeline-vertical"
-                                 data-date="{{ day.date_str }}">
-                                {% if day.shifts %}
-                                    {% for shift in day.shifts %}
-                                    <span class="shift-block"
-                                          data-id="{{ shift.id }}"
-                                          data-employee="{{ row.display_name }}"
-                                          data-employee-id="{{ row.employee.id }}"
-                                          data-date="{{ day.date_str }}"
-                                          data-start="{{ shift.start_label }}"
-                                          data-end="{{ shift.end_label }}"
-                                          data-note="{{ shift.note|default_if_none:''|escape }}"
-                                          data-break-minutes="{{ shift.break_minutes }}"
-                                          data-store-id="{{ shift.store_id|default_if_none:'' }}"
-                                          data-store-name="{{ shift.store_name|default_if_none:'' }}"
-                                          title="{{ shift.note|default_if_none:''|escape }}"
-                                          style="top: {{ shift.top_pct }}%; height: {{ shift.height_pct }}%; --shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
-                                        {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
-                                    </span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="row-empty">—</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endwith %}
-                        {% endfor %}
-                    {% else %}
-                        <div class="timeline-employee-column timeline-empty" data-employee-id="" data-employee-name="">
-                            <div class="timeline-employee-grid timeline-grid timeline-vertical">
-                                <span class="row-empty">—</span>
-                            </div>
-                        </div>
-                    {% endif %}
                 </div>
+                {% endwith %}
+                {% endfor %}
             </div>
         {% else %}
             <div class="week-scroll">

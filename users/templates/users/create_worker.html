@@ -198,6 +198,27 @@
   #workerTable tbody tr:hover {
     background-color: #f3f6f9;
   }
+  #workerTable thead th:nth-child(1),
+  #workerTable tbody td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #fff;
+    box-shadow: 2px 0 0 #d1d9e2;
+  }
+  #workerTable thead th:nth-child(2),
+  #workerTable tbody td:nth-child(2) {
+    position: sticky;
+    left: 60px;
+    z-index: 3;
+    background: #fff;
+    box-shadow: 2px 0 0 #d1d9e2;
+  }
+  #workerTable thead th:nth-child(1),
+  #workerTable thead th:nth-child(2) {
+    background-color: #d6dde5 !important;
+    z-index: 4;
+  }
 </style>
 {% endblock %}
 {% block extra_js %}

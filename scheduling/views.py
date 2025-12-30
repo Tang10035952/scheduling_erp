@@ -287,6 +287,24 @@ def scheduling_timeline(request):
     if view == "month" and not date_str:
         date = month_date
 
+    base_start = 8 * 60
+    base_end = 24 * 60
+    total_minutes = base_end - base_start
+    timeline_hours = list(range(8, 24))
+    timeline_columns = len(timeline_hours)
+    timeline_end_label = "23:00"
+    timeline_total_minutes = total_minutes
+    timeline_row_count = len(timeline_hours)
+    timeline_markers = []
+    for hour in timeline_hours:
+        offset = (hour * 60 - base_start) / total_minutes * 100
+        timeline_markers.append({
+            "label": f"{hour:02d}:00",
+            "offset_pct": round(offset, 4),
+        })
+    timeline_end_offset_pct = round((23 * 60 - base_start) / total_minutes * 100, 4)
+    timeline_show_end_label = all(marker["label"] != timeline_end_label for marker in timeline_markers)
+
     if not is_manager_user:
         show_empty_rows = False
 
@@ -463,25 +481,6 @@ def scheduling_timeline(request):
             "is_weekend": d.weekday() >= 5,
             "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
         } for d in date_range]
-
-    base_start = 8 * 60
-    base_end = 24 * 60
-    total_minutes = base_end - base_start
-    timeline_hours = list(range(8, 24))
-    timeline_columns = len(timeline_hours)
-    timeline_end_label = "23:00"
-    timeline_total_minutes = total_minutes
-    timeline_row_count = len(timeline_hours)
-    timeline_markers = []
-    for hour in timeline_hours:
-        offset = (hour * 60 - base_start) / total_minutes * 100
-        timeline_markers.append({
-            "label": f"{hour:02d}:00",
-            "offset_pct": round(offset, 4),
-        })
-    timeline_end_offset_pct = round((23 * 60 - base_start) / total_minutes * 100, 4)
-    timeline_show_end_label = all(marker["label"] != timeline_end_label for marker in timeline_markers)
-    timeline_show_end_label = all(marker["label"] != timeline_end_label for marker in timeline_markers)
 
     role_order = Case(
         When(role="manager", then=Value(0)),

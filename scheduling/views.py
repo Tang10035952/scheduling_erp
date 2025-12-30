@@ -323,8 +323,8 @@ def scheduling_timeline(request):
 
     if view == "month":
         role_order = Case(
-            When(role="manager", then=Value(1)),
-            default=Value(0),
+            When(role="manager", then=Value(0)),
+            default=Value(1),
             output_field=IntegerField(),
         )
         _, days_in_month = month_calendar.monthrange(month_date.year, month_date.month)
@@ -334,7 +334,7 @@ def scheduling_timeline(request):
         workers = UserProfile.objects.filter(
             role__in=("worker", "supervisor", "manager"),
             employment_status="active",
-        ).annotate(role_order=role_order).select_related("user").order_by(
+        ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
             "role_order", "sort_order", "name", "user__username"
         )
 
@@ -455,14 +455,14 @@ def scheduling_timeline(request):
     total_minutes = base_end - base_start
 
     role_order = Case(
-        When(role="manager", then=Value(1)),
-        default=Value(0),
+        When(role="manager", then=Value(0)),
+        default=Value(1),
         output_field=IntegerField(),
     )
     workers = UserProfile.objects.filter(
         role__in=("worker", "supervisor", "manager"),
         employment_status="active",
-    ).annotate(role_order=role_order).select_related("user").order_by(
+    ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
         "role_order", "sort_order", "name", "user__username"
     )
 
@@ -1014,8 +1014,16 @@ def worker_schedule(request):
         } for d in date_range]
 
     if allow_worker_view:
-        workers = UserProfile.objects.filter(role__in=("worker", "supervisor")).select_related("user").order_by(
-            "sort_order", "name", "user__username"
+        role_order = Case(
+            When(role="manager", then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+        workers = UserProfile.objects.filter(
+            role__in=("worker", "supervisor", "manager"),
+            employment_status="active",
+        ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
+            "role_order", "sort_order", "name", "user__username"
         )
         shifts = (
             Shift.objects.filter(date__in=date_range, is_published=True)

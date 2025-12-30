@@ -29,6 +29,11 @@
     align-items: stretch;
 }
 
+.timeline-header.timeline-with-hours,
+.timeline-row.timeline-with-hours {
+    grid-template-columns: 180px 90px 1fr;
+}
+
 .timeline-header {
     background: #f8fafc;
     border-bottom: 1px solid #e5e7eb;
@@ -45,6 +50,21 @@
     text-align: center;
 }
 
+.timeline-hours {
+    padding: 12px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #0f172a;
+    border-right: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.timeline-header .timeline-hours {
+    background: #f8fafc;
+}
+
 .blink-warning {
     animation: blink-warning 1.2s ease-in-out infinite;
 }
@@ -57,9 +77,10 @@
 
 .timeline-grid-header {
     display: grid;
-    grid-template-columns: repeat(16, 1fr);
+    grid-template-columns: repeat(var(--timeline-columns, 16), 1fr);
     font-size: 0.95rem;
     color: #475569;
+    position: relative;
 }
 
 .timeline-hour {
@@ -77,7 +98,14 @@
     position: relative;
     min-height: 46px;
     background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
-    background-size: calc(100% / 16) 100%;
+    background-size: calc(100% / var(--timeline-columns, 16)) 100%;
+}
+
+.timeline-grid.timeline-vertical {
+    min-height: auto;
+    height: var(--timeline-total-height, 960px);
+    background-image: linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+    background-size: 100% calc(100% / var(--timeline-row-count, 8));
 }
 
 .timeline-grid::after {
@@ -94,6 +122,113 @@
 
 .timeline-card:not(.timeline-readonly) .shift-cell {
     cursor: pointer;
+}
+
+.day-timeline-scroll {
+    overflow: auto;
+    max-height: 70vh;
+}
+
+.timeline-vertical {
+    --timeline-minute-height: 1px;
+    --timeline-total-height: calc(var(--timeline-total-minutes, 960) * var(--timeline-minute-height));
+    display: grid;
+    grid-template-columns: 80px repeat(var(--timeline-employee-columns, 1), minmax(140px, 1fr));
+    grid-template-rows: auto 1fr;
+    align-items: stretch;
+    min-width: 720px;
+}
+
+.timeline-vertical-header {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 80px repeat(var(--timeline-employee-columns, 1), minmax(140px, 1fr));
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 8;
+}
+
+.timeline-time-header,
+.timeline-employee-header {
+    padding: 10px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #0f172a;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.timeline-employee-hours {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.timeline-time-column {
+    grid-row: 2;
+    position: relative;
+    height: var(--timeline-total-height, 960px);
+    border-right: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+.timeline-time-label {
+    position: absolute;
+    left: 8px;
+    transform: translateY(-50%);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+.timeline-time-label:first-child {
+    transform: translateY(0);
+}
+
+.timeline-time-label.timeline-time-end {
+    font-weight: 600;
+}
+
+.timeline-employee-column {
+    grid-row: 2;
+    position: relative;
+    border-right: 1px solid #e5e7eb;
+    background: #fff;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.timeline-employee-grid {
+    position: relative;
+    height: var(--timeline-total-height, 960px);
+    overflow: hidden;
+    width: 100%;
+    min-width: 0;
+}
+
+.timeline-vertical .shift-block {
+    left: 6px;
+    right: 6px;
+    width: auto;
+    height: auto;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+    max-width: calc(100% - 12px);
+    box-sizing: border-box;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.timeline-vertical .row-empty {
+    position: absolute;
+    top: 8px;
+    left: 8px;
 }
 
 .cell-frame {
@@ -118,7 +253,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-    cursor: default;
+    cursor: pointer;
     z-index: 2;
 }
 
@@ -207,6 +342,15 @@
     text-decoration: underline;
 }
 .manager-row .name-cell {
+    background-color: #d1fae5;
+}
+
+.manager-row .timeline-name {
+    background-color: #d1fae5;
+}
+
+.timeline-employee-header.manager-row,
+.timeline-employee-column.manager-row {
     background-color: #d1fae5;
 }
 
@@ -386,10 +530,35 @@
     font-weight: 700;
 }
 
+.my-row-highlight .timeline-name {
+    background-color: #c3f0c3;
+    font-weight: 700;
+}
+
+.timeline-employee-header.my-row-highlight,
+.timeline-employee-column.my-row-highlight {
+    background-color: #c3f0c3;
+    font-weight: 700;
+}
+
+.timeline-end-label {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    color: #64748b;
+    pointer-events: none;
+}
+
 @media (max-width: 992px) {
     .timeline-header,
     .timeline-row {
         grid-template-columns: 120px 1fr;
+    }
+    .timeline-header.timeline-with-hours,
+    .timeline-row.timeline-with-hours {
+        grid-template-columns: 120px 70px 1fr;
     }
     .timeline-hour {
         font-size: 0.85rem;
@@ -403,6 +572,10 @@
     .timeline-header,
     .timeline-row {
         min-width: 720px;
+    }
+    .timeline-header.timeline-with-hours,
+    .timeline-row.timeline-with-hours {
+        min-width: 820px;
     }
 }
 
@@ -457,6 +630,7 @@
 
 <form class="row g-3 align-items-end mb-3" method="get">
     <input type="hidden" name="view" value="{{ view }}">
+    <input type="hidden" name="day_layout" value="{{ day_layout }}">
     {% if view == 'month' %}
         <div class="col-auto d-flex align-items-end">
             <div class="btn-group" role="group" aria-label="month nav">
@@ -535,11 +709,21 @@
     <div class="col-auto">
         <div class="btn-group" role="group" aria-label="view toggle">
             <a class="btn btn-outline-secondary {% if view == 'day' %}active{% endif %}"
-               href="?view=day&date={{ date|date:'Y-m-d' }}{% if show_empty_rows %}&show_empty=1{% endif %}">日</a>
+               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}">日</a>
             <a class="btn btn-outline-secondary {% if view == 'week' %}active{% endif %}"
                href="?view=week&date={{ date|date:'Y-m-d' }}{% if show_empty_rows %}&show_empty=1{% endif %}">週</a>
             <a class="btn btn-outline-secondary {% if view == 'month' %}active{% endif %}"
                href="?view=month&month={{ month_value }}{% if show_empty_rows %}&show_empty=1{% endif %}">月</a>
+        </div>
+    </div>
+    {% endif %}
+    {% if view == 'day' %}
+    <div class="col-auto">
+        <div class="btn-group" role="group" aria-label="day layout toggle">
+            <a class="btn btn-outline-secondary {% if day_layout != 'timeline' %}active{% endif %}"
+               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=table{% if show_empty_rows %}&show_empty=1{% endif %}">表格</a>
+            <a class="btn btn-outline-secondary {% if day_layout == 'timeline' %}active{% endif %}"
+               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=timeline{% if show_empty_rows %}&show_empty=1{% endif %}">垂直時間軸</a>
         </div>
     </div>
     {% endif %}
@@ -555,73 +739,148 @@
 
 <div class="timeline-card{% if read_only %} timeline-readonly{% endif %}">
     {% if view == 'day' %}
-        <div class="week-scroll">
-            <table class="week-table">
-                <thead>
-                    <tr>
-                        <th class="name-cell">員工\日期</th>
-                        {% if can_manage_store %}
-                        <th class="hours-cell">已排班時數</th>
+        {% if day_layout == 'timeline' %}
+            <div class="day-timeline-scroll week-scroll">
+                <div class="timeline-vertical"
+                     style="--timeline-employee-columns: {{ timeline_employee_columns }}; --timeline-total-minutes: {{ timeline_total_minutes }}; --timeline-row-count: {{ timeline_row_count }};">
+                    <div class="timeline-vertical-header">
+                        <div class="timeline-time-header">時間</div>
+                        {% if rows %}
+                            {% for row in rows %}
+                            <div class="timeline-employee-header{% if row.employee.role == "manager" %} manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}">
+                                {% if can_manage_store %}
+                                <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                                {% else %}
+                                {{ row.display_name }}
+                                {% endif %}
+                                {% if can_manage_store %}
+                                <span class="timeline-employee-hours">{{ row.scheduled_hours }}</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="timeline-employee-header timeline-empty">—</div>
                         {% endif %}
-                        {% for day in day_headers %}
-                        <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
-                            <a class="date-link" href="?view=day&date={{ day.date_str }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
-                            {% if day.holiday_name %}
-                                <span class="holiday-badge">{{ day.holiday_name }}</span>
-                            {% endif %}
-                        </th>
+                    </div>
+                    <div class="timeline-time-column">
+                        {% for marker in timeline_markers %}
+                        <div class="timeline-time-label" style="top: {{ marker.offset_pct }}%;">{{ marker.label }}</div>
                         {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                    <tr data-employee-id="{{ row.employee.id }}"{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
-                        <td class="name-cell">
-                            {% if can_manage_store %}
-                            <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
-                            {% else %}
-                            {{ row.display_name }}
-                            {% endif %}
-                        </td>
-                        {% if can_manage_store %}
-                        <td class="hours-cell">
-                            <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
-                        </td>
+                        {% if timeline_show_end_label %}
+                        <div class="timeline-time-label timeline-time-end" style="top: {{ timeline_end_offset_pct }}%;">{{ timeline_end_label }}</div>
                         {% endif %}
-                        {% for day in row.days %}
-                        <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
-                            data-employee-id="{{ row.employee.id }}"
-                            data-employee-name="{{ row.display_name }}"
-                            data-date="{{ day.date_str }}">
-                            <span class="cell-frame"></span>
-                            {% if day.shifts %}
-                                {% for shift in day.shifts %}
-                                <span class="shift-line"
-                                      data-id="{{ shift.id }}"
-                                      data-employee="{{ row.display_name }}"
-                                      data-employee-id="{{ row.employee.id }}"
-                                      data-date="{{ day.date_str }}"
-                                      data-start="{{ shift.start_label }}"
-                                      data-end="{{ shift.end_label }}"
-                                      data-note="{{ shift.note|default_if_none:''|escape }}"
-                                      data-break-minutes="{{ shift.break_minutes }}"
-                                      data-store-id="{{ shift.store_id|default_if_none:'' }}"
-                                      data-store-name="{{ shift.store_name|default_if_none:'' }}"
-                                      title="{{ shift.note|default_if_none:''|escape }}"
-                                      style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
-                                    {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
-                                </span>
-                                {% endfor %}
-                            {% else %}
+                    </div>
+                    {% if rows %}
+                        {% for row in rows %}
+                        {% with day=row.days.0 %}
+                        <div class="timeline-employee-column{% if row.employee.role == "manager" %} manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"
+                             data-employee-id="{{ row.employee.id }}"
+                             data-employee-name="{{ row.display_name }}">
+                            <div class="timeline-employee-grid timeline-grid timeline-vertical"
+                                 data-date="{{ day.date_str }}">
+                                {% if day.shifts %}
+                                    {% for shift in day.shifts %}
+                                    <span class="shift-block"
+                                          data-id="{{ shift.id }}"
+                                          data-employee="{{ row.display_name }}"
+                                          data-employee-id="{{ row.employee.id }}"
+                                          data-date="{{ day.date_str }}"
+                                          data-start="{{ shift.start_label }}"
+                                          data-end="{{ shift.end_label }}"
+                                          data-note="{{ shift.note|default_if_none:''|escape }}"
+                                          data-break-minutes="{{ shift.break_minutes }}"
+                                          data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                                          data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                                          title="{{ shift.note|default_if_none:''|escape }}"
+                                          style="top: {{ shift.top_pct }}%; height: {{ shift.height_pct }}%; --shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                                        {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
+                                    </span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="row-empty">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="timeline-employee-column timeline-empty" data-employee-id="" data-employee-name="">
+                            <div class="timeline-employee-grid timeline-grid timeline-vertical">
                                 <span class="row-empty">—</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="week-scroll">
+                <table class="week-table">
+                    <thead>
+                        <tr>
+                            <th class="name-cell">員工\日期</th>
+                            {% if can_manage_store %}
+                            <th class="hours-cell">已排班時數</th>
                             {% endif %}
-                        </td>
+                            {% for day in day_headers %}
+                            <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
+                                <a class="date-link" href="?view=day&date={{ day.date_str }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
+                                {% if day.holiday_name %}
+                                    <span class="holiday-badge">{{ day.holiday_name }}</span>
+                                {% endif %}
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr data-employee-id="{{ row.employee.id }}"{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
+                            <td class="name-cell">
+                                {% if can_manage_store %}
+                                <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                                {% else %}
+                                {{ row.display_name }}
+                                {% endif %}
+                            </td>
+                            {% if can_manage_store %}
+                            <td class="hours-cell">
+                                <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                            </td>
+                            {% endif %}
+                            {% for day in row.days %}
+                            <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
+                                data-employee-id="{{ row.employee.id }}"
+                                data-employee-name="{{ row.display_name }}"
+                                data-date="{{ day.date_str }}">
+                                <span class="cell-frame"></span>
+                                {% if day.shifts %}
+                                    {% for shift in day.shifts %}
+                                    <span class="shift-line"
+                                          data-id="{{ shift.id }}"
+                                          data-employee="{{ row.display_name }}"
+                                          data-employee-id="{{ row.employee.id }}"
+                                          data-date="{{ day.date_str }}"
+                                          data-start="{{ shift.start_label }}"
+                                          data-end="{{ shift.end_label }}"
+                                          data-note="{{ shift.note|default_if_none:''|escape }}"
+                                          data-break-minutes="{{ shift.break_minutes }}"
+                                          data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                                          data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                                          title="{{ shift.note|default_if_none:''|escape }}"
+                                          style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                                        {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
+                                    </span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="row-empty">—</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
                         {% endfor %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
     {% elif view == 'week' %}
         <div class="week-scroll">
             <table class="week-table">
@@ -633,7 +892,7 @@
                         {% endif %}
                         {% for day in day_headers %}
                         <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
-                            <a class="date-link" href="?view=day&date={{ day.date_str }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
+                            <a class="date-link" href="?view=day&date={{ day.date_str }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
                             {% if day.holiday_name %}
                                 <span class="holiday-badge">{{ day.holiday_name }}</span>
                             {% endif %}
@@ -701,7 +960,7 @@
                         {% endif %}
                         {% for day in month_days %}
                         <th class="{% if day.holiday_name %}holiday-national-month{% elif day.is_weekend %}holiday-general-month{% endif %}{% if day.date == today_str %} today-highlight{% endif %}">
-                            <a class="date-link" href="?view=day&date={{ day.date }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date }}">{{ day.day }}（{{ day.weekday_label }}）</a>
+                            <a class="date-link" href="?view=day&date={{ day.date }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date }}">{{ day.day }}（{{ day.weekday_label }}）</a>
                             {% if day.holiday_name %}
                                 <span class="holiday-badge">{{ day.holiday_name }}</span>
                             {% endif %}
@@ -1416,22 +1675,34 @@ document.getElementById("createShiftBtn").addEventListener("click", function() {
 const defaultStart = "08:00";
 const defaultEnd = "08:15";
 
+const resolveEmployeeFromGrid = (grid) => {
+    const row = grid.closest(".timeline-row");
+    if (row) {
+        return {id: row.dataset.employeeId, name: row.dataset.employeeName};
+    }
+    const column = grid.closest(".timeline-employee-column");
+    if (column) {
+        return {id: column.dataset.employeeId, name: column.dataset.employeeName};
+    }
+    return null;
+};
+
 document.querySelectorAll(".timeline-grid").forEach(grid => {
     grid.addEventListener("click", function(e) {
         if (e.target.closest(".shift-block")) {
             return;
         }
-        const row = this.closest(".timeline-row");
-        if (!row) {
+        const employee = resolveEmployeeFromGrid(this);
+        if (!employee || !employee.id) {
             return;
         }
-        if (!canEditEmployee(row.dataset.employeeId)) {
+        if (!canEditEmployee(employee.id)) {
             return;
         }
         setCreateTarget(this);
         openCreateModal({
-            employeeName: row.dataset.employeeName,
-            employeeId: row.dataset.employeeId,
+            employeeName: employee.name,
+            employeeId: employee.id,
             dateStr: this.dataset.date,
             startValue: defaultStart,
             endValue: defaultEnd
@@ -1595,6 +1866,22 @@ const applyStoreFilter = () => {
         }
     });
 
+    document.querySelectorAll(".timeline-employee-grid").forEach((grid) => {
+        const visible = grid.querySelector(".shift-block:not(.d-none)");
+        let placeholder = grid.querySelector(".row-empty");
+        if (!visible) {
+            if (!placeholder) {
+                placeholder = document.createElement("span");
+                placeholder.className = "row-empty";
+                placeholder.textContent = "—";
+                grid.appendChild(placeholder);
+            }
+            placeholder.classList.remove("d-none");
+        } else if (placeholder) {
+            placeholder.classList.add("d-none");
+        }
+    });
+
     const allowEmptyRows = showEmptyRowsInput && showEmptyRowsInput.checked;
     const applyRowVisibility = (row, selector) => {
         const employeeId = (row.dataset.employeeId || "").trim();
@@ -1613,11 +1900,21 @@ const applyStoreFilter = () => {
     document.querySelectorAll(".timeline-row").forEach((row) => {
         applyRowVisibility(row, ".shift-block:not(.d-none), .shift-line:not(.d-none)");
     });
+    document.querySelectorAll(".timeline-employee-column").forEach((column) => {
+        applyRowVisibility(column, ".shift-block:not(.d-none)");
+    });
     document.querySelectorAll(".week-table tbody tr, .month-table tbody tr").forEach((row) => {
         applyRowVisibility(row, ".shift-line:not(.d-none)");
     });
 
     updateShiftCellHeights();
+    const verticalContainer = document.querySelector(".timeline-vertical");
+    if (verticalContainer) {
+        const visibleColumns = Array.from(document.querySelectorAll(".timeline-employee-column"))
+            .filter((column) => !column.classList.contains("d-none"))
+            .length;
+        verticalContainer.style.setProperty("--timeline-employee-columns", String(Math.max(visibleColumns, 1)));
+    }
 };
 
 if (storeInputs.length) {
@@ -1819,6 +2116,7 @@ if (dayLinks.length) {
             const url = new URL(window.location.href);
             url.searchParams.set("view", "day");
             url.searchParams.set("date", date);
+            url.searchParams.set("day_layout", "{{ day_layout }}");
             url.searchParams.delete("month");
             window.location.href = url.toString();
         });

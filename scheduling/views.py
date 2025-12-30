@@ -246,6 +246,9 @@ def scheduling_timeline(request):
     view = request.GET.get("view", "week")
     if view not in ("day", "week", "month"):
         view = "week"
+    day_layout = request.GET.get("day_layout", "table")
+    if day_layout not in ("table", "timeline"):
+        day_layout = "table"
 
     date_str = request.GET.get("date")
     store_ids = request.GET.getlist("store")
@@ -400,9 +403,11 @@ def scheduling_timeline(request):
             })
 
         weekday_labels = ["一", "二", "三", "四", "五", "六", "日"]
+        timeline_employee_columns = max(len(workers), 1)
         response = render(request, "scheduling/timeline.html", {
             "date": date,
             "view": view,
+            "day_layout": day_layout,
             "month_date": month_date,
             "month_days": [{
                 "day": d.day,
@@ -428,6 +433,15 @@ def scheduling_timeline(request):
             "can_manage_store": is_manager_user,
             "show_empty_rows": show_empty_rows,
             "break_rules_json": json.dumps(normalize_break_rules(break_rules)),
+            "timeline_hours": timeline_hours,
+            "timeline_columns": timeline_columns,
+            "timeline_end_label": timeline_end_label,
+            "timeline_total_minutes": timeline_total_minutes,
+            "timeline_row_count": timeline_row_count,
+            "timeline_markers": timeline_markers,
+            "timeline_end_offset_pct": timeline_end_offset_pct,
+            "timeline_employee_columns": timeline_employee_columns,
+            "timeline_show_end_label": timeline_show_end_label,
         })
         logger.info("timeline view=%s total_ms=%.1f", view, (time.perf_counter() - t0) * 1000)
         return response
@@ -453,6 +467,21 @@ def scheduling_timeline(request):
     base_start = 8 * 60
     base_end = 24 * 60
     total_minutes = base_end - base_start
+    timeline_hours = list(range(8, 24))
+    timeline_columns = len(timeline_hours)
+    timeline_end_label = "23:00"
+    timeline_total_minutes = total_minutes
+    timeline_row_count = len(timeline_hours)
+    timeline_markers = []
+    for hour in timeline_hours:
+        offset = (hour * 60 - base_start) / total_minutes * 100
+        timeline_markers.append({
+            "label": f"{hour:02d}:00",
+            "offset_pct": round(offset, 4),
+        })
+    timeline_end_offset_pct = round((23 * 60 - base_start) / total_minutes * 100, 4)
+    timeline_show_end_label = all(marker["label"] != timeline_end_label for marker in timeline_markers)
+    timeline_show_end_label = all(marker["label"] != timeline_end_label for marker in timeline_markers)
 
     role_order = Case(
         When(role="manager", then=Value(0)),
@@ -509,6 +538,8 @@ def scheduling_timeline(request):
 
                 offset = display_start - base_start
                 width = display_end - display_start
+                offset_pct = round(offset / total_minutes * 100, 4)
+                width_pct = round(width / total_minutes * 100, 4)
                 items.append({
                     "id": s.id,
                     "date": d,
@@ -520,8 +551,10 @@ def scheduling_timeline(request):
                     "store_name": store_name,
                     "store_color": store_color,
                     "store_text_color": store_text_color,
-                    "offset_pct": round(offset / total_minutes * 100, 4),
-                    "width_pct": round(width / total_minutes * 100, 4),
+                    "offset_pct": offset_pct,
+                    "width_pct": width_pct,
+                    "top_pct": offset_pct,
+                    "height_pct": width_pct,
                 })
 
             day_entries.append({
@@ -544,12 +577,14 @@ def scheduling_timeline(request):
         })
 
     hours = list(range(8, 24))
+    timeline_employee_columns = max(len(rows), 1)
 
     response = render(request, "scheduling/timeline.html", {
         "date": date,
         "rows": rows,
         "hours": hours,
         "view": view,
+        "day_layout": day_layout,
         "day_headers": day_headers,
         "month_value": date.strftime("%Y-%m"),
         "employees": workers,
@@ -567,6 +602,15 @@ def scheduling_timeline(request):
         "worker_edit_closed": worker_edit_closed,
         "can_manage_store": is_manager_user,
         "break_rules_json": json.dumps(normalize_break_rules(break_rules)),
+        "timeline_hours": timeline_hours,
+        "timeline_columns": timeline_columns,
+        "timeline_end_label": timeline_end_label,
+        "timeline_total_minutes": timeline_total_minutes,
+        "timeline_row_count": timeline_row_count,
+        "timeline_markers": timeline_markers,
+        "timeline_end_offset_pct": timeline_end_offset_pct,
+        "timeline_employee_columns": timeline_employee_columns,
+        "timeline_show_end_label": timeline_show_end_label,
     })
     logger.info("timeline view=%s total_ms=%.1f", view, (time.perf_counter() - t0) * 1000)
     return response
@@ -965,6 +1009,9 @@ def worker_schedule(request):
     view = request.GET.get("view", "week")
     if view not in ("day", "week", "month"):
         view = "week"
+    day_layout = request.GET.get("day_layout", "table")
+    if day_layout not in ("table", "timeline"):
+        day_layout = "table"
     date_str = request.GET.get("date")
     date = parse_date(date_str) if date_str else None
     if not date:
@@ -982,6 +1029,25 @@ def worker_schedule(request):
         month_date = date.replace(day=1)
     if view == "month" and not date_str:
         date = month_date
+
+    store_ids = request.GET.getlist("store")
+    store_query = None
+    selected_store_ids = []
+    selected_unassigned = False
+    if store_ids:
+        unassigned = "unassigned" in store_ids
+        selected_unassigned = unassigned
+        numeric_ids = []
+        for value in store_ids:
+            if value.isdigit():
+                numeric_ids.append(int(value))
+        selected_store_ids = numeric_ids
+        if numeric_ids and unassigned:
+            store_query = Q(store_id__in=numeric_ids) | Q(store__isnull=True)
+        elif numeric_ids:
+            store_query = Q(store_id__in=numeric_ids)
+        elif unassigned:
+            store_query = Q(store__isnull=True)
 
     weekday_labels = ["一", "二", "三", "四", "五", "六", "日"]
     day_headers = None
@@ -1013,6 +1079,25 @@ def worker_schedule(request):
             "weekday_label": weekday_labels[d.weekday()],
         } for d in date_range]
 
+    base_start = 8 * 60
+    base_end = 24 * 60
+    total_minutes = base_end - base_start
+    timeline_hours = list(range(8, 24))
+    timeline_columns = len(timeline_hours)
+    timeline_end_label = "23:00"
+    timeline_total_minutes = total_minutes
+    timeline_row_count = len(timeline_hours)
+    timeline_markers = []
+    for hour in timeline_hours:
+        offset = (hour * 60 - base_start) / total_minutes * 100
+        timeline_markers.append({
+            "label": f"{hour:02d}:00",
+            "offset_pct": round(offset, 4),
+        })
+    timeline_end_offset_pct = round((23 * 60 - base_start) / total_minutes * 100, 4)
+    timeline_show_end_label = all(marker["label"] != timeline_end_label for marker in timeline_markers)
+
+    stores = Store.objects.all()
     if allow_worker_view:
         role_order = Case(
             When(role="manager", then=Value(0)),
@@ -1025,18 +1110,16 @@ def worker_schedule(request):
         ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
             "role_order", "sort_order", "name", "user__username"
         )
-        shifts = (
-            Shift.objects.filter(date__in=date_range, is_published=True)
-            .select_related("employee__user", "store")
-            .order_by("start_time")
-        )
+        shifts = Shift.objects.filter(date__in=date_range, is_published=True)
+        if store_query is not None:
+            shifts = shifts.filter(store_query)
+        shifts = shifts.select_related("employee__user", "store").order_by("start_time")
     else:
         workers = [profile]
-        shifts = (
-            Shift.objects.filter(employee=profile, date__in=date_range, is_published=True)
-            .select_related("employee__user", "store")
-            .order_by("start_time")
-        )
+        shifts = Shift.objects.filter(employee=profile, date__in=date_range, is_published=True)
+        if store_query is not None:
+            shifts = shifts.filter(store_query)
+        shifts = shifts.select_related("employee__user", "store").order_by("start_time")
 
     by_employee_date = {}
     for s in shifts:
@@ -1102,6 +1185,20 @@ def worker_schedule(request):
                 items = []
                 for s in by_employee_date.get(worker.id, {}).get(d, []):
                     store_name, store_color, store_text_color = get_store_display(s)
+                    start_min = s.start_time.hour * 60 + s.start_time.minute
+                    end_min = s.end_time.hour * 60 + s.end_time.minute
+                    if end_min <= start_min:
+                        end_min += 24 * 60
+
+                    display_start = max(start_min, base_start)
+                    display_end = min(end_min, base_end)
+                    if display_end <= base_start or display_start >= base_end:
+                        continue
+
+                    offset = display_start - base_start
+                    width = display_end - display_start
+                    offset_pct = round(offset / total_minutes * 100, 4)
+                    width_pct = round(width / total_minutes * 100, 4)
                     items.append({
                         "id": s.id,
                         "date": d,
@@ -1113,6 +1210,10 @@ def worker_schedule(request):
                         "store_name": store_name,
                         "store_color": store_color,
                         "store_text_color": store_text_color,
+                        "offset_pct": offset_pct,
+                        "width_pct": width_pct,
+                        "top_pct": offset_pct,
+                        "height_pct": width_pct,
                     })
 
                 day_entries.append({
@@ -1137,6 +1238,10 @@ def worker_schedule(request):
     shift_update_url = reverse("scheduling:worker_shift_update")
     shift_delete_url = reverse("scheduling:worker_shift_delete")
     show_profile_warning = profile.missing_required_info()
+    if view == "month":
+        timeline_employee_columns = max(len(workers), 1)
+    else:
+        timeline_employee_columns = max(len(rows), 1)
 
     return render(
         request,
@@ -1145,6 +1250,7 @@ def worker_schedule(request):
             "date": date,
             "rows": rows,
             "view": view,
+            "day_layout": day_layout,
             "day_headers": day_headers,
             "month_value": month_date.strftime("%Y-%m"),
             "month_days": month_days,
@@ -1160,13 +1266,25 @@ def worker_schedule(request):
             "shift_update_url": shift_update_url,
             "shift_delete_url": shift_delete_url,
             "today_str": localtime(now()).date().strftime("%Y-%m-%d"),
-            "hide_store_filter": True,
+            "stores": stores,
+            "selected_store_ids": selected_store_ids,
+            "selected_unassigned": selected_unassigned,
+            "hide_store_filter": False,
             "hide_store_info": False,
             "worker_edit_closed": not allow_worker_edit_shifts,
             "can_manage_store": False,
             "show_profile_warning": show_profile_warning,
             "self_scheduled_hours": format_minutes(scheduled_minutes),
             "break_rules_json": json.dumps(normalize_break_rules(break_rules)),
+            "timeline_hours": timeline_hours,
+            "timeline_columns": timeline_columns,
+            "timeline_end_label": timeline_end_label,
+            "timeline_total_minutes": timeline_total_minutes,
+            "timeline_row_count": timeline_row_count,
+            "timeline_markers": timeline_markers,
+            "timeline_end_offset_pct": timeline_end_offset_pct,
+            "timeline_employee_columns": timeline_employee_columns,
+            "timeline_show_end_label": timeline_show_end_label,
         },
     )
 

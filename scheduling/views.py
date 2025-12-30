@@ -343,6 +343,9 @@ def scheduling_timeline(request):
         return f"{hours:02d}:{minutes:02d}"
 
     if view == "month":
+        visible_roles = ("worker", "supervisor", "manager")
+        if is_worker_user:
+            visible_roles = ("worker", "supervisor")
         role_order = Case(
             When(role="manager", then=Value(0)),
             default=Value(1),
@@ -353,13 +356,17 @@ def scheduling_timeline(request):
         holiday_map = build_holiday_map(day_list)
 
         workers = UserProfile.objects.filter(
-            role__in=("worker", "supervisor", "manager"),
+            role__in=visible_roles,
             employment_status="active",
         ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
             "role_order", "sort_order", "name", "user__username"
         )
 
-        shifts_qs = Shift.objects.filter(date__in=day_list, is_published=True)
+        shifts_qs = Shift.objects.filter(
+            date__in=day_list,
+            is_published=True,
+            employee__role__in=visible_roles,
+        )
         if store_query is not None:
             shifts_qs = shifts_qs.filter(store_query)
         shifts = (
@@ -482,19 +489,26 @@ def scheduling_timeline(request):
             "holiday_name": holiday_map.get(d.strftime("%Y-%m-%d")),
         } for d in date_range]
 
+    visible_roles = ("worker", "supervisor", "manager")
+    if is_worker_user:
+        visible_roles = ("worker", "supervisor")
     role_order = Case(
         When(role="manager", then=Value(0)),
         default=Value(1),
         output_field=IntegerField(),
     )
     workers = UserProfile.objects.filter(
-        role__in=("worker", "supervisor", "manager"),
+        role__in=visible_roles,
         employment_status="active",
     ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
         "role_order", "sort_order", "name", "user__username"
     )
 
-    shifts_qs = Shift.objects.filter(date__in=date_range, is_published=True)
+    shifts_qs = Shift.objects.filter(
+        date__in=date_range,
+        is_published=True,
+        employee__role__in=visible_roles,
+    )
     if store_query is not None:
         shifts_qs = shifts_qs.filter(store_query)
     shifts = (
@@ -1098,18 +1112,23 @@ def worker_schedule(request):
 
     stores = Store.objects.all()
     if allow_worker_view:
+        visible_roles = ("worker", "supervisor")
         role_order = Case(
             When(role="manager", then=Value(0)),
             default=Value(1),
             output_field=IntegerField(),
         )
         workers = UserProfile.objects.filter(
-            role__in=("worker", "supervisor", "manager"),
+            role__in=visible_roles,
             employment_status="active",
         ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
             "role_order", "sort_order", "name", "user__username"
         )
-        shifts = Shift.objects.filter(date__in=date_range, is_published=True)
+        shifts = Shift.objects.filter(
+            date__in=date_range,
+            is_published=True,
+            employee__role__in=visible_roles,
+        )
         if store_query is not None:
             shifts = shifts.filter(store_query)
         shifts = shifts.select_related("employee__user", "store").order_by("start_time")

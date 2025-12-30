@@ -17,6 +17,7 @@ urlpatterns = [
     path('create-worker/add/', views.worker_create, name='worker_create'),
     path('create-worker/<int:profile_id>/', views.worker_detail, name='worker_detail'),
     path('create-worker/<int:profile_id>/upload/', views.upload_worker_document, name='worker_upload'),
+    path('create-worker/<int:profile_id>/employment-status/', views.update_worker_employment_status, name='worker_employment_status'),
     path('create-worker/<int:profile_id>/reset-password/', views.reset_worker_password, name='worker_reset_password'),
     path('create-worker/<int:profile_id>/delete-document/', views.delete_worker_document, name='worker_delete_document'),
     path('create-worker/reorder/', views.reorder_workers, name='reorder_workers'),

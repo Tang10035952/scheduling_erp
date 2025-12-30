@@ -1,12 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+from django.core.files.storage import default_storage
 
 class UserProfile(models.Model):
     USER_ROLES = (
         ('worker', '員工'),
         ('manager', '店長'),
         ('supervisor', '主管'),
+    )
+    EMPLOYMENT_STATUS = (
+        ("active", "在職"),
+        ("inactive", "離職"),
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("名稱", max_length=50, blank=True)
@@ -34,6 +42,12 @@ class UserProfile(models.Model):
         blank=True,
         related_name="primary_workers",
         verbose_name="店別",
+    )
+    employment_status = models.CharField(
+        "在職狀態",
+        max_length=10,
+        choices=EMPLOYMENT_STATUS,
+        default="active",
     )
 
     def is_manager(self):
@@ -95,3 +109,11 @@ class WorkerDocument(models.Model):
 
     def __str__(self):
         return f"{self.profile_id}:{self.category}"
+
+
+@receiver(post_delete, sender=WorkerDocument)
+def _delete_worker_document_file(sender, instance, **kwargs):
+    if not instance.file:
+        return
+    if default_storage.exists(instance.file.name):
+        instance.file.delete(save=False)

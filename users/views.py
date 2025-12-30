@@ -171,6 +171,8 @@ def create_worker(request):
                 "mobile_phone": worker.mobile_phone,
                 "missing_info": missing_info,
                 "role_label": worker.get_role_display(),
+                "employment_status": worker.employment_status,
+                "employment_status_label": worker.get_employment_status_display(),
             }
         )
 
@@ -232,6 +234,31 @@ def delete_worker(request):
     profile.user.delete()
     messages.success(request, "員工資料已刪除。")
     return redirect("users:create_worker")
+
+
+@login_required
+@user_passes_test(is_store_manager)
+@require_POST
+def update_worker_employment_status(request, profile_id):
+    status = request.POST.get("employment_status")
+    if status not in {"active", "inactive"}:
+        return JsonResponse({"ok": False, "error": "狀態錯誤"}, status=400)
+
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).first()
+    if not profile:
+        return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    if profile.employment_status != status:
+        profile.employment_status = status
+        profile.save(update_fields=["employment_status"])
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "employment_status": profile.employment_status,
+            "employment_status_label": profile.get_employment_status_display(),
+        }
+    )
 
 
 IMAGE_CONTENT_TYPES = {

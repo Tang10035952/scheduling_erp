@@ -47,6 +47,14 @@
               <div class="filter-label">電話</div>
               <input type="text" class="form-control form-control-sm column-filter" data-field="mobile_phone" placeholder="篩選電話">
             </th>
+            <th>
+              <div class="filter-label">在職狀態</div>
+              <select class="form-select form-select-sm column-filter" data-field="employment_status">
+                <option value="">全部</option>
+                <option value="在職">在職</option>
+                <option value="離職">離職</option>
+              </select>
+            </th>
             <th class="text-center align-top">操作</th>
           </tr>
         </thead>
@@ -57,6 +65,7 @@
               data-worker-name="{{ worker.display_name }}"
               data-worker-real-name="{{ worker.real_name }}"
               data-worker-role="{{ worker.role_label }}"
+              data-worker-employment-status="{{ worker.employment_status_label }}"
               data-worker-age="{{ worker.age }}"
               data-worker-mobile-phone="{{ worker.mobile_phone }}">
             <td class="text-center">{{ forloop.counter }}</td>
@@ -72,6 +81,12 @@
             <td>{{ worker.role_label }}</td>
             <td>{{ worker.age }}</td>
             <td>{{ worker.mobile_phone|default:"-" }}</td>
+            <td>
+              <select class="form-select form-select-sm employment-status-select" data-profile-id="{{ worker.profile.id }}">
+                <option value="active" {% if worker.employment_status == "active" %}selected{% endif %}>在職</option>
+                <option value="inactive" {% if worker.employment_status == "inactive" %}selected{% endif %}>離職</option>
+              </select>
+            </td>
             <td class="text-center">
               <form method="post" action="{% url 'users:delete_worker' %}" class="d-inline">
                 {% csrf_token %}
@@ -169,6 +184,14 @@
     font-size: 0.8rem;
     padding: 0.2rem 0.4rem;
   }
+  .filter-row .form-select {
+    width: 130px;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+    background-color: #f7f9fb;
+    border-color: #c7d0da;
+    color: #2b3a45;
+  }
   .filter-row .form-control::placeholder {
     color: #8e9aaa;
   }
@@ -179,6 +202,17 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+  const getCookie = (name) => {
+    const cookies = document.cookie ? document.cookie.split(";") : [];
+    for (let i = 0; i < cookies.length; i += 1) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(`${name}=`)) {
+        return decodeURIComponent(cookie.substring(name.length + 1));
+      }
+    }
+    return "";
+  };
+
   document.querySelectorAll(".delete-worker").forEach((btn) => {
     btn.addEventListener("click", () => {
       const row = btn.closest("tr");
@@ -193,8 +227,55 @@
     });
   });
 
+  document.querySelectorAll(".employment-status-select").forEach((select) => {
+    select.dataset.prevValue = select.value;
+    select.addEventListener("change", () => {
+      const profileId = select.dataset.profileId;
+      if (!profileId) return;
+      const previous = select.dataset.prevValue || select.value;
+      const row = select.closest("tr");
+      const previousLabel = previous === "inactive" ? "離職" : "在職";
+      const formData = new FormData();
+      formData.append("employment_status", select.value);
+      select.disabled = true;
+      fetch(`/users/create-worker/${profileId}/employment-status/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: formData,
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "更新失敗");
+          }
+          select.dataset.prevValue = select.value;
+          if (row) {
+            row.dataset.workerEmploymentStatus = select.value === "inactive" ? "離職" : "在職";
+          }
+          applyFilters();
+        })
+        .catch((error) => {
+          select.value = previous;
+          if (row) {
+            row.dataset.workerEmploymentStatus = previousLabel;
+          }
+          applyFilters();
+          alert(error.message || "更新失敗");
+        })
+        .finally(() => {
+          select.disabled = false;
+        });
+    });
+  });
+
   const rows = document.querySelectorAll("#workerTable tbody tr");
   const columnFilters = document.querySelectorAll(".column-filter");
+  const statusFilter = document.querySelector('.column-filter[data-field="employment_status"]');
+  if (statusFilter && !statusFilter.value) {
+    statusFilter.value = "在職";
+  }
   const applyFilters = () => {
     const filters = {};
     columnFilters.forEach((input) => {
@@ -203,6 +284,7 @@
         filters[input.dataset.field] = value;
       }
     });
+    let visibleIndex = 1;
     rows.forEach((row) => {
       const match = Object.entries(filters).every(([field, value]) => {
         const key = `worker${field.charAt(0).toUpperCase()}${field.slice(1).replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`;
@@ -210,10 +292,19 @@
         return dataValue.includes(value);
       });
       row.classList.toggle("d-none", !match);
+      if (match) {
+        const seqCell = row.querySelector("td");
+        if (seqCell) {
+          seqCell.textContent = visibleIndex;
+        }
+        visibleIndex += 1;
+      }
     });
   };
   columnFilters.forEach((input) => {
     input.addEventListener("input", applyFilters);
+    input.addEventListener("change", applyFilters);
   });
+  applyFilters();
 </script>
 {% endblock %}

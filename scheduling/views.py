@@ -326,9 +326,10 @@ def scheduling_timeline(request):
         day_list = [month_date.replace(day=i) for i in range(1, days_in_month + 1)]
         holiday_map = build_holiday_map(day_list)
 
-        workers = UserProfile.objects.filter(role__in=("worker", "supervisor")).select_related("user").order_by(
-            "sort_order", "name", "user__username"
-        )
+        workers = UserProfile.objects.filter(
+            role__in=("worker", "supervisor"),
+            employment_status="active",
+        ).select_related("user").order_by("sort_order", "name", "user__username")
 
         shifts_qs = Shift.objects.filter(date__in=day_list, is_published=True)
         if store_query is not None:
@@ -445,9 +446,10 @@ def scheduling_timeline(request):
     base_end = 24 * 60
     total_minutes = base_end - base_start
 
-    workers = UserProfile.objects.filter(role__in=("worker", "supervisor")).select_related("user").order_by(
-        "sort_order", "name", "user__username"
-    )
+    workers = UserProfile.objects.filter(
+        role__in=("worker", "supervisor"),
+        employment_status="active",
+    ).select_related("user").order_by("sort_order", "name", "user__username")
 
     shifts_qs = Shift.objects.filter(date__in=date_range, is_published=True)
     if store_query is not None:

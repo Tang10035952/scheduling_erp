@@ -12,6 +12,10 @@ class UserProfile(models.Model):
         ('manager', '店長'),
         ('supervisor', '主管'),
     )
+    EMPLOYMENT_STATUS = (
+        ("active", "在職"),
+        ("inactive", "離職"),
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("名稱", max_length=50, blank=True)
     real_name = models.CharField("真實姓名", max_length=50, blank=True)
@@ -38,6 +42,12 @@ class UserProfile(models.Model):
         blank=True,
         related_name="primary_workers",
         verbose_name="店別",
+    )
+    employment_status = models.CharField(
+        "在職狀態",
+        max_length=10,
+        choices=EMPLOYMENT_STATUS,
+        default="active",
     )
 
     def is_manager(self):

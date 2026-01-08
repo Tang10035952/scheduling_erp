@@ -1129,6 +1129,7 @@ def worker_schedule(request):
             is_published=True,
             employee__role__in=visible_roles,
         )
+        shifts = shifts.filter(Q(store__isnull=False) | Q(employee_id=profile.id))
         if store_query is not None:
             shifts = shifts.filter(store_query)
         shifts = shifts.select_related("employee__user", "store").order_by("start_time")

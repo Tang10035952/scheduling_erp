@@ -1,6 +1,8 @@
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.db.models import F, Q
-from users.models import UserProfile
+from users.models import UserProfile, SalarySlip
 
 
 class Store(models.Model):
@@ -86,3 +88,16 @@ class Shift(models.Model):
 
     def __str__(self):
         return f"{self.employee.display_name()} {self.date} ({self.start_time}-{self.end_time})"
+
+
+@receiver(post_delete, sender=Shift)
+def _delete_salary_slip_if_no_shifts(sender, instance, **kwargs):
+    year = instance.date.year
+    month = instance.date.month
+    has_any_shift = Shift.objects.filter(
+        employee=instance.employee,
+        date__year=year,
+        date__month=month,
+    ).exists()
+    if not has_any_shift:
+        SalarySlip.objects.filter(profile=instance.employee, year=year, month=month).delete()

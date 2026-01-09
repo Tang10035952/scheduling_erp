@@ -4,6 +4,7 @@ from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.db.models import Case, IntegerField, Q, Value, When
+from django.http import JsonResponse
 from django.utils import timezone
 from django.core.files.storage import default_storage
 from django.shortcuts import redirect, render
@@ -84,6 +85,35 @@ def _parse_decimal(value, label):
         return Decimal(raw)
     except (InvalidOperation, ValueError):
         raise ValueError(f"{label} 格式錯誤")
+
+
+def _parse_pay_type(value, label):
+    raw = (value or "").strip()
+    if raw in {"hourly", "salaried"}:
+        return raw
+    raise ValueError(f"{label} 格式錯誤")
+
+
+def _salary_has_value_query():
+    fields = [
+        "base_salary",
+        "overtime_salary",
+        "work_hours",
+        "overtime_hours",
+        "base_pay",
+        "overtime_pay",
+        "insurance_transfer",
+        "performance_bonus",
+        "labor_insurance",
+        "extra_health_insurance",
+        "responsibility_bonus",
+        "perfect_attendance",
+        "total_salary",
+    ]
+    query = Q()
+    for field in fields:
+        query |= ~Q(**{field: 0})
+    return query
 
 
 @login_required
@@ -862,6 +892,7 @@ def salary_manage(request):
     slip_by_profile = {slip.profile_id: slip for slip in slips}
     total_salary_sum = sum((slip.total_salary or Decimal("0")) for slip in slips)
     fields = [
+        ("pay_type", "薪資方式"),
         ("base_salary", "底薪"),
         ("overtime_salary", "加班薪資"),
         ("work_hours", "上班時數"),
@@ -877,13 +908,14 @@ def salary_manage(request):
         ("total_salary", "總薪資"),
     ]
 
+    numeric_fields = [field for field in fields if field[0] != "pay_type"]
+
     if request.method == "POST":
         errors = []
         pending = []
         for profile in profiles:
             values = {}
-            has_value = False
-            for field_name, label in fields:
+            for field_name, label in numeric_fields:
                 try:
                     value = _parse_decimal(
                         request.POST.get(f"slip-{profile.id}-{field_name}"),
@@ -893,14 +925,21 @@ def salary_manage(request):
                     errors.append(f"{profile.display_name()}：{exc}")
                     value = None
                 values[field_name] = value
-                if value is not None and value != 0:
-                    has_value = True
+            try:
+                pay_type_value = _parse_pay_type(
+                    request.POST.get(f"slip-{profile.id}-pay_type"),
+                    "薪資方式",
+                )
+            except ValueError as exc:
+                errors.append(f"{profile.display_name()}：{exc}")
+                pay_type_value = profile.pay_type
+            values["pay_type"] = pay_type_value
 
-            pending.append((profile, values, has_value))
+            pending.append((profile, values))
 
         if not errors:
-            for profile, values, has_value in pending:
-                if profile.pay_type == "hourly":
+            for profile, values in pending:
+                if values.get("pay_type") == "hourly":
                     base_salary = values.get("base_salary")
                     work_hours = values.get("work_hours")
                     if base_salary is not None and work_hours is not None:
@@ -911,10 +950,6 @@ def salary_manage(request):
                     else:
                         values["base_pay"] = None
                 existing = slip_by_profile.get(profile.id)
-                if not has_value:
-                    if existing:
-                        existing.delete()
-                    continue
 
                 if existing:
                     for field_name, _ in fields:
@@ -938,13 +973,33 @@ def salary_manage(request):
     next_year = year + 1 if month == 12 else year
     next_month = 1 if month == 12 else month + 1
 
-    rows = [{"profile": profile, "slip": slip_by_profile.get(profile.id)} for profile in profiles]
+    rows = []
+    for profile in profiles:
+        slip = slip_by_profile.get(profile.id)
+        row_pay_type = slip.pay_type if slip and slip.pay_type else profile.pay_type
+        rows.append({"profile": profile, "slip": slip, "pay_type": row_pay_type})
+    rows = sorted(
+        rows,
+        key=lambda row: (
+            0 if row["profile"].id == request.user.userprofile.id else 1,
+            0 if row["pay_type"] == "salaried" else 1,
+            row["profile"].sort_order,
+            row["profile"].name,
+            row["profile"].user.username,
+        ),
+    )
+    salaried_rows = [row for row in rows if row["pay_type"] == "salaried"]
+    hourly_rows = [row for row in rows if row["pay_type"] != "salaried"]
+    total_count = len(rows)
 
     return render(
         request,
         "users/salary_manage.html",
         {
             "rows": rows,
+            "salaried_rows": salaried_rows,
+            "hourly_rows": hourly_rows,
+            "total_count": total_count,
             "fields": fields,
             "year": year,
             "month": month,
@@ -956,6 +1011,7 @@ def salary_manage(request):
             "stores": Store.objects.all(),
             "selected_store": store_value,
             "total_salary_sum": total_salary_sum,
+            "pay_type_choices": UserProfile.PAY_TYPES,
         },
     )
 
@@ -967,7 +1023,11 @@ def salary_list(request):
     except UserProfile.DoesNotExist:
         return redirect("users:login")
 
-    slips = SalarySlip.objects.filter(profile=profile).order_by("-year", "-month", "id")
+    slips = (
+        SalarySlip.objects.filter(profile=profile)
+        .filter(_salary_has_value_query())
+        .order_by("-year", "-month", "id")
+    )
     return render(
         request,
         "users/salary_list.html",
@@ -989,6 +1049,8 @@ def salary_detail(request, slip_id):
     if not slip:
         messages.error(request, "找不到薪資單。")
         return redirect("users:salary_list")
+    if not SalarySlip.objects.filter(id=slip_id).filter(_salary_has_value_query()).exists():
+        return redirect("users:salary_list")
 
     year = slip.year
     month = slip.month
@@ -1004,6 +1066,38 @@ def salary_detail(request, slip_id):
             "month": month,
         },
     )
+
+
+@login_required
+@user_passes_test(is_store_manager)
+def update_salary_pay_type(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "invalid_method"}, status=405)
+
+    profile_id = request.POST.get("profile_id")
+    if not profile_id:
+        return JsonResponse({"error": "missing_profile"}, status=400)
+    try:
+        profile_id = int(profile_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "invalid_profile"}, status=400)
+    profile = UserProfile.objects.filter(id=profile_id).first()
+    if not profile:
+        return JsonResponse({"error": "profile_not_found"}, status=404)
+
+    year, month = _parse_year_month(request, source="POST")
+    try:
+        pay_type = _parse_pay_type(request.POST.get("pay_type"), "薪資方式")
+    except ValueError:
+        return JsonResponse({"error": "invalid_pay_type"}, status=400)
+
+    SalarySlip.objects.update_or_create(
+        profile=profile,
+        year=year,
+        month=month,
+        defaults={"pay_type": pay_type},
+    )
+    return JsonResponse({"ok": True, "pay_type": pay_type})
 
 
 def _document_if_exists(doc):

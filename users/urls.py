@@ -16,6 +16,7 @@ urlpatterns = [
     path('salary/manage/', views.salary_manage, name='salary_manage'),
     path('salary/', views.salary_list, name='salary_list'),
     path('salary/<int:slip_id>/', views.salary_detail, name='salary_detail'),
+    path('salary/pay-type/', views.update_salary_pay_type, name='salary_pay_type'),
     path('create-worker/', views.create_worker, name='create_worker'),
     path('create-worker/add/', views.worker_create, name='worker_create'),
     path('create-worker/<int:profile_id>/', views.worker_detail, name='worker_detail'),

@@ -86,6 +86,25 @@
   </div>
 </div>
 
+<div class="modal fade" id="salaryPreviewModal" tabindex="-1" aria-labelledby="salaryPreviewLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="salaryPreviewLabel">薪資單預覽</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <img id="salaryPreviewImage" alt="薪資單預覽" class="img-fluid w-100 rounded border">
+        <div class="small text-muted mt-2">手機可長按圖片另存。</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="salaryPreviewDownload">下載</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
   #salary-slip {
     max-width: 520px;
@@ -128,39 +147,55 @@
 <script>
   const downloadImageButton = document.getElementById("download-image");
   const slipElement = document.getElementById("salary-slip");
+  const previewModalEl = document.getElementById("salaryPreviewModal");
+  const previewModal = previewModalEl && window.bootstrap
+    ? new window.bootstrap.Modal(previewModalEl)
+    : null;
+  const previewImage = document.getElementById("salaryPreviewImage");
+  const previewDownloadButton = document.getElementById("salaryPreviewDownload");
+  const filename = "salary-{{ slip.year }}-{{ slip.month }}.png";
+  let previewDataUrl = "";
 
   downloadImageButton.addEventListener("click", async () => {
+    if (downloadImageButton.dataset.loading === "true") return;
+    const originalText = downloadImageButton.textContent;
+    downloadImageButton.dataset.loading = "true";
+    downloadImageButton.textContent = "產生中...";
     try {
-      const isMobile = /Mobi|Android|iP(hone|ad|od)/i.test(navigator.userAgent);
-      const previewWindow = isMobile ? window.open("", "_blank") : null;
       const canvas = await html2canvas(slipElement, { scale: 2, backgroundColor: "#ffffff" });
-      const dataUrl = canvas.toDataURL("image/png");
-      const filename = "salary-{{ slip.year }}-{{ slip.month }}.png";
+      previewDataUrl = canvas.toDataURL("image/png");
+      previewImage.src = previewDataUrl;
+      if (previewModal) {
+        previewModal.show();
+      } else {
+        window.open(previewDataUrl, "_blank");
+      }
+    } catch (error) {
+      alert("圖片下載失敗，請稍後再試。");
+    } finally {
+      downloadImageButton.dataset.loading = "false";
+      downloadImageButton.textContent = originalText;
+    }
+  });
+
+  if (previewDownloadButton) {
+    previewDownloadButton.addEventListener("click", () => {
+      if (!previewDataUrl) return;
+      const isMobile = /Mobi|Android|iP(hone|ad|od)/i.test(navigator.userAgent);
       const link = document.createElement("a");
       link.download = filename;
-      link.href = dataUrl;
-
+      link.href = previewDataUrl;
       if (!isMobile && typeof link.download === "string") {
         document.body.appendChild(link);
         link.click();
         link.remove();
         return;
       }
-
-      if (previewWindow) {
-        previewWindow.location = dataUrl;
-        previewWindow.focus();
-        return;
-      }
-
-      const opened = window.open(dataUrl, "_blank");
+      const opened = window.open(previewDataUrl, "_blank");
       if (!opened) {
         alert("請長按圖片另存下載。");
       }
-    } catch (error) {
-      alert("圖片下載失敗，請稍後再試。");
-    }
-  });
-
+    });
+  }
 </script>
 {% endblock %}

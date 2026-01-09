@@ -51,7 +51,7 @@
           {% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label">薪資類型</label>
+          <label class="form-label">預設薪資類型</label>
           {{ form.pay_type|add_class:"form-select" }}
           {% if form.pay_type.errors %}
             <div class="text-danger small mt-1">{{ form.pay_type.errors.0 }}</div>

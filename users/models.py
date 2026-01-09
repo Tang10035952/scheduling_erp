@@ -130,6 +130,13 @@ class SalarySlip(models.Model):
     )
     year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField()
+    pay_type = models.CharField(
+        "薪資方式",
+        max_length=10,
+        choices=UserProfile.PAY_TYPES,
+        default="hourly",
+        blank=True,
+    )
     base_salary = models.DecimalField("底薪", max_digits=10, decimal_places=2, default=0, blank=True)
     overtime_salary = models.DecimalField("加班薪資", max_digits=10, decimal_places=2, default=0, blank=True)
     work_hours = models.DecimalField("上班時數", max_digits=10, decimal_places=2, default=0, blank=True)

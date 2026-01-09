@@ -350,6 +350,7 @@ def create_salary_slips(workers):
                 year=year,
                 month=month,
                 defaults={
+                    "pay_type": worker.pay_type,
                     "base_salary": base_salary,
                     "overtime_salary": overtime_salary,
                     "work_hours": work_hours,

@@ -51,7 +51,7 @@
         {% csrf_token %}
         <input type="hidden" name="year_month" value="{{ year_month }}">
         <input type="hidden" name="store" value="{{ selected_store }}">
-        <div class="table-responsive">
+        <div class="table-responsive salary-table-scroll">
           <div class="salary-section-block" data-section="salaried">
             <div class="salary-section-label">正職人員</div>
             <table class="table table-bordered align-middle text-center salary-table">
@@ -177,6 +177,15 @@
     min-width: 90px;
     font-size: 0.9rem;
   }
+  .salary-table-scroll {
+    max-height: calc(100vh - 260px);
+    overflow: auto;
+  }
+  .salary-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
   .salary-header-dark th {
     background: #000000ec;
     color: #fff;
@@ -186,6 +195,7 @@
     background: #000000ec;
     color: #fff;
     border-color: #fff !important;
+    z-index: 6;
   }
   .salary-table thead.salary-header-dark tr {
     border-bottom: 1px solid #fff !important;
@@ -208,6 +218,7 @@
   }
   .salary-table {
     border: 2px solid #000;
+    position: relative;
   }
   .salary-table > :not(caption) > * > * {
     border-color: #000;

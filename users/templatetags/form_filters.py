@@ -27,3 +27,12 @@ def int_display(value):
     except (InvalidOperation, TypeError, ValueError):
         return value
     return str(decimal_value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+@register.filter(name="is_negative")
+def is_negative(value):
+    try:
+        decimal_value = Decimal(value)
+    except (InvalidOperation, TypeError, ValueError):
+        return False
+    return decimal_value < 0

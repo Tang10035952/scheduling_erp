@@ -29,55 +29,55 @@
           </tr>
           <tr>
             <th>底薪</th>
-            <td>{{ slip.base_salary|int_display }}</td>
+            <td class="{% if slip.base_salary|is_negative %}negative{% endif %}">{{ slip.base_salary|int_display }}</td>
           </tr>
           <tr>
             <th>加班薪資</th>
-            <td>{{ slip.overtime_salary|int_display }}</td>
+            <td class="{% if slip.overtime_salary|is_negative %}negative{% endif %}">{{ slip.overtime_salary|int_display }}</td>
           </tr>
           <tr>
             <th>上班時數</th>
-            <td>{{ slip.work_hours|int_display }}</td>
+            <td class="{% if slip.work_hours|is_negative %}negative{% endif %}">{{ slip.work_hours|int_display }}</td>
           </tr>
           <tr>
             <th>加班時數</th>
-            <td>{{ slip.overtime_hours|int_display }}</td>
+            <td class="{% if slip.overtime_hours|is_negative %}negative{% endif %}">{{ slip.overtime_hours|int_display }}</td>
           </tr>
           <tr>
             <th>底薪薪資</th>
-            <td>{{ slip.base_pay|int_display }}</td>
+            <td class="{% if slip.base_pay|is_negative %}negative{% endif %}">{{ slip.base_pay|int_display }}</td>
           </tr>
           <tr>
             <th>加班薪資</th>
-            <td>{{ slip.overtime_pay|int_display }}</td>
+            <td class="{% if slip.overtime_pay|is_negative %}negative{% endif %}">{{ slip.overtime_pay|int_display }}</td>
           </tr>
           <tr>
             <th>保險+轉帳</th>
-            <td>{{ slip.insurance_transfer|int_display }}</td>
+            <td class="{% if slip.insurance_transfer|is_negative %}negative{% endif %}">{{ slip.insurance_transfer|int_display }}</td>
           </tr>
           <tr>
             <th>業績獎金</th>
-            <td>{{ slip.performance_bonus|int_display }}</td>
+            <td class="{% if slip.performance_bonus|is_negative %}negative{% endif %}">{{ slip.performance_bonus|int_display }}</td>
           </tr>
           <tr>
             <th>勞建保</th>
-            <td>{{ slip.labor_insurance|int_display }}</td>
+            <td class="{% if slip.labor_insurance|is_negative %}negative{% endif %}">{{ slip.labor_insurance|int_display }}</td>
           </tr>
           <tr>
             <th>多扣兩個月健保</th>
-            <td>{{ slip.extra_health_insurance|int_display }}</td>
+            <td class="{% if slip.extra_health_insurance|is_negative %}negative{% endif %}">{{ slip.extra_health_insurance|int_display }}</td>
           </tr>
           <tr>
             <th>責任獎金</th>
-            <td>{{ slip.responsibility_bonus|int_display }}</td>
+            <td class="{% if slip.responsibility_bonus|is_negative %}negative{% endif %}">{{ slip.responsibility_bonus|int_display }}</td>
           </tr>
           <tr>
             <th>全勤</th>
-            <td>{{ slip.perfect_attendance|int_display }}</td>
+            <td class="{% if slip.perfect_attendance|is_negative %}negative{% endif %}">{{ slip.perfect_attendance|int_display }}</td>
           </tr>
           <tr>
             <th>總薪資</th>
-            <td class="fw-semibold">{{ slip.total_salary|int_display }}</td>
+            <td class="fw-semibold {% if slip.total_salary|is_negative %}negative{% endif %}">{{ slip.total_salary|int_display }}</td>
           </tr>
         </tbody>
       </table>
@@ -122,6 +122,9 @@
   .salary-slip-vertical th,
   .salary-slip-vertical td {
     border: 1.5px solid #000;
+  }
+  .salary-slip-vertical td.negative {
+    color: #c00000;
   }
 
   @media print {

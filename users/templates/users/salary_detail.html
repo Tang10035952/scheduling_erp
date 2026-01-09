@@ -131,6 +131,8 @@
 
   downloadImageButton.addEventListener("click", async () => {
     try {
+      const isMobile = /Mobi|Android|iP(hone|ad|od)/i.test(navigator.userAgent);
+      const previewWindow = isMobile ? window.open("", "_blank") : null;
       const canvas = await html2canvas(slipElement, { scale: 2, backgroundColor: "#ffffff" });
       const dataUrl = canvas.toDataURL("image/png");
       const filename = "salary-{{ slip.year }}-{{ slip.month }}.png";
@@ -138,10 +140,16 @@
       link.download = filename;
       link.href = dataUrl;
 
-      if (typeof link.download === "string") {
+      if (!isMobile && typeof link.download === "string") {
         document.body.appendChild(link);
         link.click();
         link.remove();
+        return;
+      }
+
+      if (previewWindow) {
+        previewWindow.location = dataUrl;
+        previewWindow.focus();
         return;
       }
 

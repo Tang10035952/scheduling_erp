@@ -55,6 +55,23 @@
                 <option value="離職">離職</option>
               </select>
             </th>
+            <th>
+              <div class="filter-label">薪資類型</div>
+              <select class="form-select form-select-sm column-filter" data-field="pay_type">
+                <option value="">全部</option>
+                <option value="計時">計時</option>
+                <option value="正職">正職</option>
+              </select>
+            </th>
+            <th>
+              <div class="filter-label">店別</div>
+              <select class="form-select form-select-sm column-filter" data-field="primary_store">
+                <option value="">全部</option>
+                {% for store in stores %}
+                <option value="{{ store.name }}">{{ store.name }}</option>
+                {% endfor %}
+              </select>
+            </th>
             <th class="text-center align-top">操作</th>
           </tr>
         </thead>
@@ -66,6 +83,8 @@
               data-worker-real-name="{{ worker.real_name }}"
               data-worker-role="{{ worker.role_label }}"
               data-worker-employment-status="{{ worker.employment_status_label }}"
+              data-worker-pay-type="{{ worker.pay_type_label }}"
+              data-worker-primary-store="{{ worker.primary_store_name }}"
               data-worker-age="{{ worker.age }}"
               data-worker-mobile-phone="{{ worker.mobile_phone }}">
             <td class="text-center">{{ forloop.counter }}</td>
@@ -85,6 +104,20 @@
               <select class="form-select form-select-sm employment-status-select" data-profile-id="{{ worker.profile.id }}">
                 <option value="active" {% if worker.employment_status == "active" %}selected{% endif %}>在職</option>
                 <option value="inactive" {% if worker.employment_status == "inactive" %}selected{% endif %}>離職</option>
+              </select>
+            </td>
+            <td>
+              <select class="form-select form-select-sm pay-type-select" data-profile-id="{{ worker.profile.id }}">
+                <option value="hourly" {% if worker.pay_type == "hourly" %}selected{% endif %}>計時</option>
+                <option value="salaried" {% if worker.pay_type == "salaried" %}selected{% endif %}>正職</option>
+              </select>
+            </td>
+            <td>
+              <select class="form-select form-select-sm primary-store-select" data-profile-id="{{ worker.profile.id }}">
+                <option value="" disabled {% if not worker.primary_store_id %}selected{% endif %}>請選擇店別</option>
+                {% for store in stores %}
+                  <option value="{{ store.id }}" {% if worker.primary_store_id == store.id %}selected{% endif %}>{{ store.name }}</option>
+                {% endfor %}
               </select>
             </td>
             <td class="text-center">
@@ -281,6 +314,92 @@
           select.value = previous;
           if (row) {
             row.dataset.workerEmploymentStatus = previousLabel;
+          }
+          applyFilters();
+          alert(error.message || "更新失敗");
+        })
+        .finally(() => {
+          select.disabled = false;
+        });
+    });
+  });
+
+  document.querySelectorAll(".pay-type-select").forEach((select) => {
+    select.dataset.prevValue = select.value;
+    select.addEventListener("change", () => {
+      const profileId = select.dataset.profileId;
+      if (!profileId) return;
+      const previous = select.dataset.prevValue || select.value;
+      const row = select.closest("tr");
+      const previousLabel = previous === "salaried" ? "正職" : "計時";
+      const formData = new FormData();
+      formData.append("pay_type", select.value);
+      select.disabled = true;
+      fetch(`/users/create-worker/${profileId}/pay-type/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: formData,
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "更新失敗");
+          }
+          select.dataset.prevValue = select.value;
+          if (row) {
+            row.dataset.workerPayType = select.value === "salaried" ? "正職" : "計時";
+          }
+          applyFilters();
+        })
+        .catch((error) => {
+          select.value = previous;
+          if (row) {
+            row.dataset.workerPayType = previousLabel;
+          }
+          applyFilters();
+          alert(error.message || "更新失敗");
+        })
+        .finally(() => {
+          select.disabled = false;
+        });
+    });
+  });
+
+  document.querySelectorAll(".primary-store-select").forEach((select) => {
+    select.dataset.prevValue = select.value;
+    select.addEventListener("change", () => {
+      const profileId = select.dataset.profileId;
+      if (!profileId) return;
+      const previous = select.dataset.prevValue || select.value;
+      const row = select.closest("tr");
+      const previousLabel = row ? row.dataset.workerPrimaryStore || "" : "";
+      const formData = new FormData();
+      formData.append("primary_store", select.value);
+      select.disabled = true;
+      fetch(`/users/create-worker/${profileId}/primary-store/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: formData,
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "更新失敗");
+          }
+          select.dataset.prevValue = select.value;
+          if (row) {
+            row.dataset.workerPrimaryStore = data.primary_store_name || "";
+          }
+          applyFilters();
+        })
+        .catch((error) => {
+          select.value = previous;
+          if (row) {
+            row.dataset.workerPrimaryStore = previousLabel;
           }
           applyFilters();
           alert(error.message || "更新失敗");

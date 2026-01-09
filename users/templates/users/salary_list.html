@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}薪資單{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-1">薪資單</h4>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if slips %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>月份</th>
+              <th>最後更新</th>
+              <th class="text-end">查看</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for slip in slips %}
+            <tr>
+              <td>{{ slip.year }} 年 {{ slip.month }} 月</td>
+              <td>{{ slip.updated_at|date:"Y-m-d H:i" }}</td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'users:salary_detail' slip.id %}">
+                  查看薪資單
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-muted">目前沒有薪資單。</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

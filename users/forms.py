@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import UserProfile
+from scheduling.models import Store
 
 
 IMAGE_CONTENT_TYPES = {
@@ -158,6 +159,7 @@ EDUCATION_CHOICES = [
 ]
 
 ROLE_CHOICES = [("worker", "員工"), ("supervisor", "主管")]
+PAY_TYPE_CHOICES = [("hourly", "計時"), ("salaried", "正職")]
 
 
 
@@ -165,6 +167,13 @@ class ManagerWorkerCreateForm(UserCreationForm):
     username = forms.CharField(label="帳號", min_length=4, max_length=150)
     display_name = forms.CharField(label="名稱", max_length=50)
     role = forms.ChoiceField(label="角色", choices=ROLE_CHOICES, required=False)
+    pay_type = forms.ChoiceField(label="薪資類型", choices=PAY_TYPE_CHOICES, required=False)
+    primary_store = forms.ModelChoiceField(
+        label="店別",
+        queryset=Store.objects.all(),
+        required=True,
+        empty_label=None,
+    )
     real_name = forms.CharField(label="真實姓名", max_length=50, required=False)
     gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES, required=False)
     birthday = forms.DateField(
@@ -200,11 +209,14 @@ class ManagerWorkerCreateForm(UserCreationForm):
         fields = ("username",)
 
     def __init__(self, *args, **kwargs):
+        require_store = kwargs.pop("require_store", True)
         super().__init__(*args, **kwargs)
         self.fields["username"].widget.attrs.setdefault("placeholder", "帳號至少4碼")
         self.fields["password1"].widget.attrs.setdefault("placeholder", "至少4碼，可純數字或英文字")
         self.fields["password2"].widget.attrs.setdefault("placeholder", "再次輸入密碼")
         self.fields["birthday"].widget.attrs.setdefault("max", timezone.localdate().isoformat())
+        self.fields["primary_store"].required = require_store
+        self.fields["primary_store"].empty_label = "請選擇店別" if require_store else "未設定"
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
@@ -270,6 +282,13 @@ class ManagerWorkerCreateForm(UserCreationForm):
 class ManagerWorkerUpdateForm(forms.Form):
     display_name = forms.CharField(label="名稱", max_length=50)
     role = forms.ChoiceField(label="角色", choices=ROLE_CHOICES, required=False)
+    pay_type = forms.ChoiceField(label="薪資類型", choices=PAY_TYPE_CHOICES, required=False)
+    primary_store = forms.ModelChoiceField(
+        label="店別",
+        queryset=Store.objects.all(),
+        required=True,
+        empty_label=None,
+    )
     real_name = forms.CharField(label="真實姓名", max_length=50)
     gender = forms.ChoiceField(label="性別", choices=GENDER_CHOICES)
     birthday = forms.DateField(
@@ -299,8 +318,11 @@ class ManagerWorkerUpdateForm(forms.Form):
     other_file = forms.FileField(label="其他", required=False)
 
     def __init__(self, *args, **kwargs):
+        require_store = kwargs.pop("require_store", True)
         super().__init__(*args, **kwargs)
         self.fields["birthday"].widget.attrs.setdefault("max", timezone.localdate().isoformat())
+        self.fields["primary_store"].required = require_store
+        self.fields["primary_store"].empty_label = "請選擇店別" if require_store else "未設定"
 
     def clean_id_number(self):
         value = (self.cleaned_data.get("id_number") or "").strip()

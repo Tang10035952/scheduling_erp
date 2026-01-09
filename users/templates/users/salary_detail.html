@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load form_filters %}
+{% block title %}薪資單{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h4 class="mb-1">薪資單</h4>
+    <div class="text-muted">{{ slip.year }} 年 {{ slip.month }} 月</div>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-secondary" id="download-image">下載薪資單</button>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div id="salary-slip" class="rounded bg-white p-4">
+      <div class="text-center mb-3">
+        <div class="fw-semibold">
+          {{ roc_year }}年{{ month }}月份薪資明細表
+        </div>
+      </div>
+      <table class="table align-middle text-center salary-slip-vertical">
+        <tbody>
+          <tr>
+            <th>姓名</th>
+            <td class="fw-semibold">{{ profile.display_name }}</td>
+          </tr>
+          <tr>
+            <th>底薪</th>
+            <td>{{ slip.base_salary|int_display }}</td>
+          </tr>
+          <tr>
+            <th>加班薪資</th>
+            <td>{{ slip.overtime_salary|int_display }}</td>
+          </tr>
+          <tr>
+            <th>上班時數</th>
+            <td>{{ slip.work_hours|int_display }}</td>
+          </tr>
+          <tr>
+            <th>加班時數</th>
+            <td>{{ slip.overtime_hours|int_display }}</td>
+          </tr>
+          <tr>
+            <th>底薪薪資</th>
+            <td>{{ slip.base_pay|int_display }}</td>
+          </tr>
+          <tr>
+            <th>加班薪資</th>
+            <td>{{ slip.overtime_pay|int_display }}</td>
+          </tr>
+          <tr>
+            <th>保險+轉帳</th>
+            <td>{{ slip.insurance_transfer|int_display }}</td>
+          </tr>
+          <tr>
+            <th>業績獎金</th>
+            <td>{{ slip.performance_bonus|int_display }}</td>
+          </tr>
+          <tr>
+            <th>勞建保</th>
+            <td>{{ slip.labor_insurance|int_display }}</td>
+          </tr>
+          <tr>
+            <th>多扣兩個月健保</th>
+            <td>{{ slip.extra_health_insurance|int_display }}</td>
+          </tr>
+          <tr>
+            <th>責任獎金</th>
+            <td>{{ slip.responsibility_bonus|int_display }}</td>
+          </tr>
+          <tr>
+            <th>全勤</th>
+            <td>{{ slip.perfect_attendance|int_display }}</td>
+          </tr>
+          <tr>
+            <th>總薪資</th>
+            <td class="fw-semibold">{{ slip.total_salary|int_display }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="text-muted small">最後更新：{{ slip.updated_at|date:"Y-m-d H:i" }}</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #salary-slip {
+    max-width: 520px;
+    margin: 0 auto;
+    border: 2px solid #000;
+  }
+  .salary-slip-vertical th,
+  .salary-slip-vertical td {
+    font-size: 0.95rem;
+  }
+  .salary-slip-vertical th {
+    width: 45%;
+    background: #ededed;
+  }
+  .salary-slip-vertical th,
+  .salary-slip-vertical td {
+    border: 1.5px solid #000;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #salary-slip,
+    #salary-slip * {
+      visibility: visible;
+    }
+    #salary-slip {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+  const downloadImageButton = document.getElementById("download-image");
+  const slipElement = document.getElementById("salary-slip");
+
+  downloadImageButton.addEventListener("click", async () => {
+    try {
+      const canvas = await html2canvas(slipElement, { scale: 2, backgroundColor: "#ffffff" });
+      const link = document.createElement("a");
+      link.download = "salary-{{ slip.year }}-{{ slip.month }}.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (error) {
+      alert("圖片下載失敗，請使用 PDF 下載。");
+    }
+  });
+
+</script>
+{% endblock %}

@@ -14,8 +14,7 @@ django.setup()
 
 from django.contrib.auth.models import User
 from django.db import connection
-from django.core.files.base import ContentFile
-from users.models import UserProfile, WorkerDocument
+from users.models import UserProfile, SalarySlip
 from scheduling.models import Shift, SchedulingWindow, WorkAvailability, Store
 
 
@@ -29,7 +28,7 @@ def reset_database():
     Shift.objects.all().delete()
     SchedulingWindow.objects.all().delete()
     Store.objects.all().delete()
-    WorkerDocument.objects.all().delete()
+    SalarySlip.objects.all().delete()
 
     UserProfile.objects.all().delete()
     User.objects.exclude(is_superuser=True).delete()
@@ -70,6 +69,7 @@ def create_manager():
         user=manager,
         role="manager",
         name="店長 李強",
+        pay_type="salaried",
     )
     return manager
 
@@ -110,31 +110,6 @@ def random_birthday():
     return date(today.year - years, month, day)
 
 
-def attach_documents(profile):
-    def make_file(name):
-        return ContentFile(b"dummy file", name=name)
-
-    WorkerDocument.objects.create(
-        profile=profile,
-        category="id_card_front",
-        file=make_file(f"{profile.user.username}_id_front.txt"),
-    )
-    WorkerDocument.objects.create(
-        profile=profile,
-        category="id_card_back",
-        file=make_file(f"{profile.user.username}_id_back.txt"),
-    )
-    WorkerDocument.objects.create(
-        profile=profile,
-        category="driver_license",
-        file=make_file(f"{profile.user.username}_driver.txt"),
-    )
-    WorkerDocument.objects.create(
-        profile=profile,
-        category="bankbook",
-        file=make_file(f"{profile.user.username}_bankbook.txt"),
-    )
-
 def create_workers(stores):
     print(f"👥 Creating {len(FAKE_WORKERS)} workers...")
     workers = []
@@ -142,6 +117,7 @@ def create_workers(stores):
     for i, (display_name, real_name) in enumerate(FAKE_WORKERS, start=1):
         education = random.choice(EDUCATION_CHOICES)
         education_other = "補充說明" if education == "其他" else ""
+        pay_type = "salaried" if random.random() < 0.2 else "hourly"
         user = User.objects.create_user(
             username=f"worker{i}",
             password="123456",
@@ -151,6 +127,7 @@ def create_workers(stores):
         profile = UserProfile.objects.create(
             user=user,
             role="worker",
+            pay_type=pay_type,
             name=display_name,
             real_name=real_name,
             gender=random.choice(GENDER_CHOICES),
@@ -168,7 +145,6 @@ def create_workers(stores):
             work_experience="飲料店 / 2022-2023 / 個人規劃",
             primary_store=random.choice(stores),
         )
-        attach_documents(profile)
         workers.append(profile)
 
     return workers
@@ -220,37 +196,53 @@ def calculate_break_minutes(start_time, end_time):
     return applied
 
 
+def month_range(year, month):
+    month_start = date(year, month, 1)
+    last_day = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    return month_start, last_day
+
+
 def create_shifts(workers, stores):
     print("📅 Creating shifts...")
 
     today = date.today()
-    month_start = today.replace(day=1)
-    last_day = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-    total_days = last_day.day
+    prev_year = today.year - 1 if today.month == 1 else today.year
+    prev_month = 12 if today.month == 1 else today.month - 1
+    months = [
+        (prev_year, prev_month),
+        (today.year, today.month),
+    ]
+    one_month_workers = set(random.sample(workers, k=max(1, len(workers) // 4)))
 
-    for d in range(total_days):
-        day = month_start + timedelta(days=d)
+    for year, month in months:
+        month_start, last_day = month_range(year, month)
+        total_days = last_day.day
 
-        for worker in workers:
-            if random.random() < 0.45:
-                continue
+        for d in range(total_days):
+            day = month_start + timedelta(days=d)
 
-            shift_count = 2 if random.random() < 0.2 else 1
-            chosen = random.sample(SHIFT_OPTIONS, k=shift_count)
+            for worker in workers:
+                if worker in one_month_workers and (year, month) != (today.year, today.month):
+                    continue
+                if random.random() < 0.45:
+                    continue
 
-            for start, end in chosen:
-                store = None if random.random() < 0.25 else random.choice(stores)
-                break_minutes = calculate_break_minutes(start, end)
-                Shift.objects.create(
-                    employee=worker,
-                    store=store,
-                    date=day,
-                    start_time=start,
-                    end_time=end,
-                    break_minutes=break_minutes,
-                    is_published=True,
-                    note=random.choice(SHIFT_NOTES),
-                )
+                shift_count = 2 if random.random() < 0.2 else 1
+                chosen = random.sample(SHIFT_OPTIONS, k=shift_count)
+
+                for start, end in chosen:
+                    store = None if random.random() < 0.25 else random.choice(stores)
+                    break_minutes = calculate_break_minutes(start, end)
+                    Shift.objects.create(
+                        employee=worker,
+                        store=store,
+                        date=day,
+                        start_time=start,
+                        end_time=end,
+                        break_minutes=break_minutes,
+                        is_published=True,
+                        note=random.choice(SHIFT_NOTES),
+                    )
 
     print("✔ Shifts created.\n")
 
@@ -292,6 +284,91 @@ def create_window_and_availability(workers):
     print("✔ Window and availability created.\n")
 
 
+def create_salary_slips(workers):
+    print("💰 Creating salary slips...")
+    today = date.today()
+    prev_year = today.year - 1 if today.month == 1 else today.year
+    prev_month = 12 if today.month == 1 else today.month - 1
+    months = [
+        (prev_year, prev_month),
+        (today.year, today.month),
+    ]
+    worker_map = {worker.id: worker for worker in workers}
+
+    for year, month in months:
+        month_start, month_end = month_range(year, month)
+        worker_ids = (
+            Shift.objects.filter(date__range=(month_start, month_end))
+            .values_list("employee_id", flat=True)
+            .distinct()
+        )
+        for worker_id in worker_ids:
+            worker = worker_map.get(worker_id)
+            if not worker:
+                continue
+            shifts = Shift.objects.filter(employee_id=worker_id, date__range=(month_start, month_end))
+            total_minutes = 0
+            for shift in shifts:
+                start_min = shift.start_time.hour * 60 + shift.start_time.minute
+                end_min = shift.end_time.hour * 60 + shift.end_time.minute
+                if end_min <= start_min:
+                    end_min += 24 * 60
+                duration = max(0, end_min - start_min - shift.break_minutes)
+                total_minutes += duration
+            work_hours = int(round(total_minutes / 60)) if total_minutes else 0
+            hourly_rate = random.choice([185, 190, 195, 200])
+            overtime_hours = max(0, work_hours - 160)
+            base_hours = max(0, work_hours - overtime_hours)
+            if worker.pay_type == "salaried":
+                base_salary = random.choice([28000, 30000, 32000, 35000])
+                base_pay = base_salary
+                overtime_salary = 0
+                overtime_pay = 0
+            else:
+                base_salary = hourly_rate
+                base_pay = int(round(base_hours * hourly_rate))
+                overtime_salary = int(round(hourly_rate * 1.34))
+                overtime_pay = int(round(overtime_hours * overtime_salary))
+            insurance_transfer = random.choice([0, -12, -24])
+            performance_bonus = random.choice([0, 200, 500, 800])
+            labor_insurance = random.choice([-500, -839, -1200])
+            extra_health_insurance = random.choice([0, -300])
+            responsibility_bonus = random.choice([0, 300, 600])
+            perfect_attendance = random.choice([0, 1000])
+            total_salary = int(round(
+                base_pay
+                + overtime_pay
+                + insurance_transfer
+                + performance_bonus
+                + labor_insurance
+                + extra_health_insurance
+                + responsibility_bonus
+                + perfect_attendance,
+            ))
+            SalarySlip.objects.update_or_create(
+                profile=worker,
+                year=year,
+                month=month,
+                defaults={
+                    "base_salary": base_salary,
+                    "overtime_salary": overtime_salary,
+                    "work_hours": work_hours,
+                    "overtime_hours": overtime_hours,
+                    "base_pay": base_pay,
+                    "overtime_pay": overtime_pay,
+                    "insurance_transfer": insurance_transfer,
+                    "performance_bonus": performance_bonus,
+                    "labor_insurance": labor_insurance,
+                    "extra_health_insurance": extra_health_insurance,
+                    "responsibility_bonus": responsibility_bonus,
+                    "perfect_attendance": perfect_attendance,
+                    "total_salary": total_salary,
+                },
+            )
+
+    print("✔ Salary slips created.\n")
+
+
 # -------------------------------
 # 執行流程
 # -------------------------------
@@ -303,6 +380,7 @@ if __name__ == "__main__":
     workers = create_workers(stores)
     create_shifts(workers, stores)
     create_window_and_availability(workers)
+    create_salary_slips(workers)
 
     print("🎉 Dummy data ready!")
     print("👉 Manager 帳號：manager / 123456")

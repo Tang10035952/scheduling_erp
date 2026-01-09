@@ -112,6 +112,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'users:create_worker' %}">員工管理</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:salary_manage' %}">薪資管理</a>
+                </li>
                 {% if user.userprofile.is_store_manager %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'scheduling:manage_window' %}">設定</a>
@@ -130,6 +133,9 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'users:worker_profile' %}">基本資料</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:salary_list' %}">薪資單</a>
                 </li>
                 {% endif %}
             </ul>

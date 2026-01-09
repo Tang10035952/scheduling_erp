@@ -76,7 +76,7 @@
                       pattern="{% if field == 'work_hours' or field == 'overtime_hours' %}\d*(\.\d{0,2})?{% else %}-?\d*{% endif %}"
                       class="form-control form-control-sm text-end salary-int-input"
                       name="slip-{{ row.profile.id }}-{{ field }}"
-                      value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'' }}{% else %}{{ value|int_display }}{% endif %}"
+                      value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}"
                       data-field="{{ field }}"
                       {% if field == "work_hours" or field == "overtime_hours" %}data-decimal="true"{% endif %}
                       {% if field == "total_salary" %}readonly{% elif field == "base_pay" and row.profile.pay_type == "hourly" %}readonly{% endif %}
@@ -227,7 +227,7 @@
         sum += toInt(input.value);
       }
     });
-    totalCell.textContent = sum ? sum : "";
+    totalCell.textContent = sum;
   };
 
   const updateTotal = (row) => {
@@ -243,7 +243,7 @@
         if (baseSalaryRaw !== "" && workHoursRaw !== "" && !Number.isNaN(baseSalary) && !Number.isNaN(workHours)) {
           basePayInput.value = Math.round(baseSalary * workHours);
         } else {
-          basePayInput.value = "";
+          basePayInput.value = "0";
         }
       }
     }
@@ -256,7 +256,7 @@
     });
     const totalInput = row.querySelector('input[data-field="total_salary"]');
     if (totalInput) {
-      totalInput.value = sum ? sum : "";
+      totalInput.value = sum;
     }
     updateOverallTotal();
   };
@@ -299,6 +299,12 @@
           sanitizeIntegerInput(input);
         }
         updateTotal(row);
+      });
+      input.addEventListener("blur", () => {
+        if (!input.value) {
+          input.value = "0";
+          updateTotal(row);
+        }
       });
     });
   });

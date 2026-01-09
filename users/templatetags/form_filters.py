@@ -21,7 +21,7 @@ def get_attribute(obj, name):
 @register.filter(name="int_display")
 def int_display(value):
     if value is None or value == "":
-        return ""
+        return "0"
     try:
         decimal_value = Decimal(value)
     except (InvalidOperation, TypeError, ValueError):

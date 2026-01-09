@@ -79,7 +79,7 @@ def _parse_year_month(request, source="GET"):
 def _parse_decimal(value, label):
     raw = (value or "").strip()
     if not raw:
-        return None
+        return Decimal("0")
     try:
         return Decimal(raw)
     except (InvalidOperation, ValueError):
@@ -893,7 +893,7 @@ def salary_manage(request):
                     errors.append(f"{profile.display_name()}：{exc}")
                     value = None
                 values[field_name] = value
-                if value is not None:
+                if value is not None and value != 0:
                     has_value = True
 
             pending.append((profile, values, has_value))

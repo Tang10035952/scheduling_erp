@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% load form_filters %}
+{% block title %}薪資管理{% endblock %}
+
+{% block content %}
+<div class="salary-page-wide">
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-2">
+  <div>
+    <h4 class="mb-1">薪資管理</h4>
+    <div class="text-muted">手動填寫薪資欄位</div>
+  </div>
+</div>
+<form class="d-flex flex-wrap align-items-end gap-2 mb-3" method="get">
+  <div class="btn-group" role="group" aria-label="month nav">
+    <button class="btn btn-outline-secondary" type="button" id="prevBtn">‹</button>
+    <button class="btn btn-outline-secondary" type="button" id="todayBtn">本月</button>
+    <button class="btn btn-outline-secondary" type="button" id="nextBtn">›</button>
+  </div>
+  <div>
+    <label class="form-label mb-1 visually-hidden">年月</label>
+    <input id="monthInput" type="month" class="form-control" name="year_month" value="{{ year_month }}" required>
+  </div>
+  <div>
+    <label class="form-label mb-1 visually-hidden">店別</label>
+    <select class="form-select" name="store" id="storeSelect">
+      <option value="all" {% if selected_store == "all" %}selected{% endif %}>全部店別</option>
+      {% for store in stores %}
+        <option value="{{ store.id }}" {% if selected_store == store.id|stringformat:"s" %}selected{% endif %}>{{ store.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header salary-title-bar d-flex justify-content-between flex-wrap gap-2">
+    <div>
+      <strong>{{ roc_label }} 薪資明細</strong>
+    </div>
+    <div class="text-muted">本月排班員工：{{ rows|length }}</div>
+  </div>
+  <div class="card-body">
+    {% if not rows %}
+      <div class="text-muted">此月份尚無排班員工。</div>
+    {% else %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="year_month" value="{{ year_month }}">
+        <input type="hidden" name="store" value="{{ selected_store }}">
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle text-center salary-table">
+            <thead class="table-light">
+              <tr>
+                <th class="sticky-col">姓名</th>
+                {% for field, label in fields %}
+                  {% if field == "total_salary" %}
+                    <th>
+                      <div>{{ label }}</div>
+                      <div class="small text-muted">(A+B+C+D+E+F+G+H)</div>
+                    </th>
+                  {% else %}
+                    <th>{{ label }}</th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr data-profile-id="{{ row.profile.id }}" data-pay-type="{{ row.profile.pay_type }}">
+                <td class="sticky-col text-start fw-semibold">{{ row.profile.display_name }}</td>
+                {% for field, label in fields %}
+                  {% with value=row.slip|getattr:field %}
+                  <td>
+                    <input
+                      type="text"
+                      inputmode="{% if field == 'work_hours' or field == 'overtime_hours' %}decimal{% else %}numeric{% endif %}"
+                      pattern="{% if field == 'work_hours' or field == 'overtime_hours' %}\\d*(\\.\\d{0,2})?{% else %}-?\\d*{% endif %}"
+                      class="form-control form-control-sm text-end salary-int-input"
+                      name="slip-{{ row.profile.id }}-{{ field }}"
+                      value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'' }}{% else %}{{ value|int_display }}{% endif %}"
+                      data-field="{{ field }}"
+                      {% if field == "work_hours" or field == "overtime_hours" %}data-decimal="true"{% endif %}
+                      {% if field == "total_salary" %}readonly{% elif field == "base_pay" and row.profile.pay_type == "hourly" %}readonly{% endif %}
+                    >
+                  </td>
+                  {% endwith %}
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <th class="sticky-col text-start">總薪資統計</th>
+                {% for field, label in fields %}
+                  {% if field == "total_salary" %}
+                    <th class="text-end fw-semibold" id="totalSalarySum">{{ total_salary_sum|int_display }}</th>
+                  {% else %}
+                    <th></th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="text-end">
+          <button class="btn btn-primary">儲存薪資資料</button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .salary-page-wide {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    padding: 0 12px;
+  }
+  .salary-title-bar {
+    background: #e0e0e0;
+  }
+  .salary-table th,
+  .salary-table td {
+    min-width: 90px;
+    font-size: 0.9rem;
+  }
+  .salary-table .sticky-col {
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 2;
+  }
+  .salary-table thead .sticky-col {
+    z-index: 3;
+  }
+  .salary-table input {
+    min-width: 85px;
+  }
+  .salary-table input[readonly] {
+    background: #f8f9fa;
+  }
+</style>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const monthInput = document.getElementById("monthInput");
+  if (monthInput) {
+    const syncMonthInputFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlMonth = params.get("year_month");
+      if (urlMonth) {
+        monthInput.value = urlMonth;
+      }
+    };
+    syncMonthInputFromUrl();
+    window.addEventListener("popstate", syncMonthInputFromUrl);
+    window.addEventListener("pageshow", syncMonthInputFromUrl);
+    monthInput.addEventListener("change", function() {
+      this.form.submit();
+    });
+  }
+
+  const storeSelect = document.getElementById("storeSelect");
+  if (storeSelect) {
+    storeSelect.addEventListener("change", function() {
+      this.form.submit();
+    });
+  }
+
+
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const todayBtn = document.getElementById("todayBtn");
+
+  if (prevBtn && nextBtn && monthInput) {
+    prevBtn.addEventListener("click", function() {
+      const [y, m] = monthInput.value.split("-").map(Number);
+      const dt = new Date(y, m - 2, 1);
+      monthInput.value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      monthInput.form.submit();
+    });
+
+    nextBtn.addEventListener("click", function() {
+      const [y, m] = monthInput.value.split("-").map(Number);
+      const dt = new Date(y, m, 1);
+      monthInput.value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      monthInput.form.submit();
+    });
+  }
+
+  if (todayBtn && monthInput) {
+    todayBtn.addEventListener("click", function() {
+      const today = "{{ today_str }}";
+      if (!today) return;
+      const [y, m] = today.split("-").map(Number);
+      monthInput.value = `${y}-${String(m).padStart(2, "0")}`;
+      monthInput.form.submit();
+    });
+  }
+
+  const rows = document.querySelectorAll(".salary-table tbody tr");
+  const totalFields = [
+    "base_pay",
+    "overtime_pay",
+    "insurance_transfer",
+    "performance_bonus",
+    "labor_insurance",
+    "extra_health_insurance",
+    "responsibility_bonus",
+    "perfect_attendance",
+  ];
+
+  const toInt = (value) => {
+    if (!value) return 0;
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const updateOverallTotal = () => {
+    const totalCell = document.getElementById("totalSalarySum");
+    if (!totalCell) return;
+    let sum = 0;
+    rows.forEach((row) => {
+      const input = row.querySelector('input[data-field="total_salary"]');
+      if (input) {
+        sum += toInt(input.value);
+      }
+    });
+    totalCell.textContent = sum ? sum : "";
+  };
+
+  const updateTotal = (row) => {
+    if (row.dataset.payType === "hourly") {
+      const baseSalaryInput = row.querySelector('input[data-field="base_salary"]');
+      const workHoursInput = row.querySelector('input[data-field="work_hours"]');
+      const basePayInput = row.querySelector('input[data-field="base_pay"]');
+      const baseSalaryRaw = baseSalaryInput ? baseSalaryInput.value : "";
+      const workHoursRaw = workHoursInput ? workHoursInput.value : "";
+      const baseSalary = parseFloat(baseSalaryRaw);
+      const workHours = parseFloat(workHoursRaw);
+      if (basePayInput) {
+        if (baseSalaryRaw !== "" && workHoursRaw !== "" && !Number.isNaN(baseSalary) && !Number.isNaN(workHours)) {
+          basePayInput.value = Math.round(baseSalary * workHours);
+        } else {
+          basePayInput.value = "";
+        }
+      }
+    }
+    let sum = 0;
+    totalFields.forEach((field) => {
+      const input = row.querySelector(`input[data-field="${field}"]`);
+      if (input) {
+        sum += toInt(input.value);
+      }
+    });
+    const totalInput = row.querySelector('input[data-field="total_salary"]');
+    if (totalInput) {
+      totalInput.value = sum ? sum : "";
+    }
+    updateOverallTotal();
+  };
+
+  const sanitizeIntegerInput = (input) => {
+    if (!input || input.readOnly) return;
+    let raw = input.value.replace(/[^\d-]/g, "");
+    if (raw.includes("-")) {
+      raw = (raw.startsWith("-") ? "-" : "") + raw.replace(/-/g, "");
+    }
+    input.value = raw;
+  };
+
+  const sanitizeDecimalInput = (input) => {
+    if (!input || input.readOnly) return;
+    let raw = input.value.replace(/[^\d.]/g, "");
+    const firstDot = raw.indexOf(".");
+    if (firstDot !== -1) {
+      const before = raw.slice(0, firstDot);
+      let after = raw.slice(firstDot + 1).replace(/\./g, "");
+      after = after.slice(0, 2);
+      raw = `${before}.${after}`;
+    }
+    input.value = raw;
+  };
+
+  rows.forEach((row) => {
+    updateTotal(row);
+    row.querySelectorAll("input[data-field]").forEach((input) => {
+      if (input.dataset.field === "total_salary") return;
+      if (input.dataset.decimal === "true") {
+        sanitizeDecimalInput(input);
+      } else {
+        sanitizeIntegerInput(input);
+      }
+      input.addEventListener("input", () => {
+        if (input.dataset.decimal === "true") {
+          sanitizeDecimalInput(input);
+        } else {
+          sanitizeIntegerInput(input);
+        }
+        updateTotal(row);
+      });
+    });
+  });
+  updateOverallTotal();
+</script>
+{% endblock %}

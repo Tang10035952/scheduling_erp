@@ -4,6 +4,7 @@ from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.db.models import Case, IntegerField, Q, Value, When
+from django.utils import timezone
 from django.core.files.storage import default_storage
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -19,8 +20,10 @@ from .forms import (
     ManagerWorkerUpdateForm,
     TempPasswordResetForm,
 )
-from .models import UserProfile, WorkerDocument
-from scheduling.models import SchedulingWindow
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
+from .models import UserProfile, WorkerDocument, SalarySlip
+from scheduling.models import SchedulingWindow, Shift, Store
 
 
 def is_manager(user):
@@ -43,6 +46,44 @@ MANAGED_ROLES = ("worker", "supervisor", "manager")
 def get_allow_worker_register():
     latest = SchedulingWindow.objects.order_by("-created_at").first()
     return latest.allow_worker_register if latest else False
+
+
+def _parse_year_month(request, source="GET"):
+    data = request.GET if source == "GET" else request.POST
+    today = timezone.localdate()
+    year_month = (data.get("year_month") or "").strip()
+    if year_month:
+        try:
+            year_str, month_str = year_month.split("-")
+            year = int(year_str)
+            month = int(month_str)
+            if 1 <= month <= 12:
+                return year, month
+        except (ValueError, AttributeError):
+            pass
+    year = data.get("year")
+    month = data.get("month")
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        year = today.year
+    try:
+        month = int(month)
+    except (TypeError, ValueError):
+        month = today.month
+    if month < 1 or month > 12:
+        month = today.month
+    return year, month
+
+
+def _parse_decimal(value, label):
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        return Decimal(raw)
+    except (InvalidOperation, ValueError):
+        raise ValueError(f"{label} 格式錯誤")
 
 
 @login_required
@@ -166,6 +207,7 @@ def create_worker(request):
         .order_by("role_order", "sort_order", "name", "user__username")
     )
     worker_rows = []
+    stores = list(Store.objects.all())
     for worker in workers:
         missing_info = worker.missing_required_info()
         age = worker.age()
@@ -181,6 +223,10 @@ def create_worker(request):
                 "role_label": worker.get_role_display(),
                 "employment_status": worker.employment_status,
                 "employment_status_label": worker.get_employment_status_display(),
+                "pay_type": worker.pay_type,
+                "pay_type_label": worker.get_pay_type_display(),
+                "primary_store_id": worker.primary_store_id,
+                "primary_store_name": worker.primary_store.name if worker.primary_store else "",
             }
         )
 
@@ -189,6 +235,7 @@ def create_worker(request):
         "users/create_worker.html",
         {
             "workers": worker_rows,
+            "stores": stores,
         },
     )
 
@@ -269,6 +316,58 @@ def update_worker_employment_status(request, profile_id):
     )
 
 
+@login_required
+@user_passes_test(is_store_manager)
+@require_POST
+def update_worker_pay_type(request, profile_id):
+    pay_type = request.POST.get("pay_type")
+    if pay_type not in {"hourly", "salaried"}:
+        return JsonResponse({"ok": False, "error": "薪資類型錯誤"}, status=400)
+
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).first()
+    if not profile:
+        return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    if profile.pay_type != pay_type:
+        profile.pay_type = pay_type
+        profile.save(update_fields=["pay_type"])
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "pay_type": profile.pay_type,
+            "pay_type_label": profile.get_pay_type_display(),
+        }
+    )
+
+
+@login_required
+@user_passes_test(is_store_manager)
+@require_POST
+def update_worker_primary_store(request, profile_id):
+    store_id = request.POST.get("primary_store")
+    if not store_id:
+        return JsonResponse({"ok": False, "error": "請選擇店別"}, status=400)
+    try:
+        store_id = int(store_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "店別格式錯誤"}, status=400)
+
+    store = Store.objects.filter(id=store_id).first()
+    if not store:
+        return JsonResponse({"ok": False, "error": "店別不存在"}, status=404)
+
+    profile = UserProfile.objects.filter(id=profile_id, role__in=MANAGED_ROLES).first()
+    if not profile:
+        return JsonResponse({"ok": False, "error": "找不到員工資料"}, status=404)
+
+    if profile.primary_store_id != store.id:
+        profile.primary_store = store
+        profile.save(update_fields=["primary_store"])
+
+    return JsonResponse({"ok": True, "primary_store_id": store.id, "primary_store_name": store.name})
+
+
 IMAGE_CONTENT_TYPES = {
     "image/jpeg",
     "image/png",
@@ -325,6 +424,7 @@ def worker_create(request):
             profile = UserProfile.objects.create(
                 user=user,
                 role=form.cleaned_data.get("role") or "worker",
+                pay_type=form.cleaned_data.get("pay_type") or "hourly",
                 name=display_name,
                 real_name=(form.cleaned_data.get("real_name") or "").strip(),
                 gender=form.cleaned_data.get("gender") or "",
@@ -341,6 +441,7 @@ def worker_create(request):
                 emergency_contact_phone=(form.cleaned_data.get("emergency_contact_phone") or "").strip(),
                 work_experience=(form.cleaned_data.get("work_experience") or "").strip(),
                 sort_order=(UserProfile.objects.filter(role__in=MANAGED_ROLES).count() + 1),
+                primary_store=form.cleaned_data.get("primary_store"),
             )
 
             _save_worker_document(profile, request.FILES.get("id_card_front"), "id_card_front")
@@ -374,11 +475,17 @@ def worker_detail(request, profile_id):
         return redirect("users:create_worker")
 
     if request.method == "POST":
-        form = ManagerWorkerUpdateForm(request.POST, request.FILES)
+        form = ManagerWorkerUpdateForm(request.POST, request.FILES, require_store=False)
         if form.is_valid():
             role = form.cleaned_data.get("role")
             if role:
                 profile.role = role
+            pay_type = form.cleaned_data.get("pay_type")
+            if pay_type:
+                profile.pay_type = pay_type
+            primary_store = form.cleaned_data.get("primary_store")
+            if primary_store:
+                profile.primary_store = primary_store
             profile.name = form.cleaned_data["display_name"].strip()
             profile.real_name = form.cleaned_data["real_name"].strip()
             profile.gender = form.cleaned_data["gender"]
@@ -409,6 +516,8 @@ def worker_detail(request, profile_id):
             initial={
                 "display_name": profile.name,
                 "role": profile.role,
+                "pay_type": profile.pay_type,
+                "primary_store": profile.primary_store,
                 "real_name": profile.real_name,
                 "gender": profile.gender,
                 "birthday": profile.birthday,
@@ -423,7 +532,8 @@ def worker_detail(request, profile_id):
                 "emergency_contact_relation": profile.emergency_contact_relation,
                 "emergency_contact_phone": profile.emergency_contact_phone,
                 "work_experience": profile.work_experience,
-            }
+            },
+            require_store=False,
         )
 
     documents = {
@@ -487,6 +597,7 @@ def worker_profile(request):
             profile.emergency_contact_relation = form.cleaned_data["emergency_contact_relation"].strip()
             profile.emergency_contact_phone = form.cleaned_data["emergency_contact_phone"].strip()
             profile.work_experience = form.cleaned_data["work_experience"].strip()
+            profile.primary_store = form.cleaned_data.get("primary_store")
             profile.save()
 
             _save_worker_document(profile, request.FILES.get("id_card_front"), "id_card_front")
@@ -502,6 +613,8 @@ def worker_profile(request):
             initial={
                 "display_name": profile.name,
                 "role": profile.role,
+                "pay_type": profile.pay_type,
+                "primary_store": profile.primary_store,
                 "real_name": profile.real_name,
                 "gender": profile.gender,
                 "birthday": profile.birthday,
@@ -704,6 +817,193 @@ def reset_worker_password(request, profile_id):
     profile.must_reset_password = True
     profile.save(update_fields=["must_reset_password"])
     return JsonResponse({"ok": True, "temp_password": temp_password})
+
+
+@login_required
+@user_passes_test(is_store_manager)
+def salary_manage(request):
+    today = timezone.localdate()
+    year, month = _parse_year_month(request, source="POST" if request.method == "POST" else "GET")
+    store_value = (request.POST.get("store") if request.method == "POST" else request.GET.get("store")) or "all"
+    store_value = store_value.strip() or "all"
+    employee_ids = (
+        Shift.objects.filter(date__year=year, date__month=month)
+        .values_list("employee_id", flat=True)
+        .distinct()
+    )
+    profiles_qs = UserProfile.objects.filter(id__in=employee_ids)
+    if store_value != "all":
+        try:
+            store_id = int(store_value)
+        except (TypeError, ValueError):
+            store_id = None
+        if store_id and Store.objects.filter(id=store_id).exists():
+            profiles_qs = profiles_qs.filter(primary_store_id=store_id)
+        else:
+            store_value = "all"
+
+    profiles = (
+        profiles_qs.select_related("user", "primary_store")
+        .annotate(
+            self_order=Case(
+                When(id=request.user.userprofile.id, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
+            pay_order=Case(
+                When(pay_type="salaried", then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
+        )
+        .order_by("self_order", "pay_order", "sort_order", "name", "user__username")
+    )
+    slips = SalarySlip.objects.filter(profile__in=profiles, year=year, month=month)
+    slip_by_profile = {slip.profile_id: slip for slip in slips}
+    total_salary_sum = sum((slip.total_salary or Decimal("0")) for slip in slips)
+    fields = [
+        ("base_salary", "底薪"),
+        ("overtime_salary", "加班薪資"),
+        ("work_hours", "上班時數"),
+        ("overtime_hours", "加班時數"),
+        ("base_pay", "底薪薪資(A)"),
+        ("overtime_pay", "加班薪資(B)"),
+        ("insurance_transfer", "保險+轉帳(C)"),
+        ("performance_bonus", "業績獎金(D)"),
+        ("labor_insurance", "勞建保(E)"),
+        ("extra_health_insurance", "多扣兩個月健保(F)"),
+        ("responsibility_bonus", "責任獎金(G)"),
+        ("perfect_attendance", "全勤(H)"),
+        ("total_salary", "總薪資"),
+    ]
+
+    if request.method == "POST":
+        errors = []
+        pending = []
+        for profile in profiles:
+            values = {}
+            has_value = False
+            for field_name, label in fields:
+                try:
+                    value = _parse_decimal(
+                        request.POST.get(f"slip-{profile.id}-{field_name}"),
+                        label,
+                    )
+                except ValueError as exc:
+                    errors.append(f"{profile.display_name()}：{exc}")
+                    value = None
+                values[field_name] = value
+                if value is not None:
+                    has_value = True
+
+            pending.append((profile, values, has_value))
+
+        if not errors:
+            for profile, values, has_value in pending:
+                if profile.pay_type == "hourly":
+                    base_salary = values.get("base_salary")
+                    work_hours = values.get("work_hours")
+                    if base_salary is not None and work_hours is not None:
+                        values["base_pay"] = (base_salary * work_hours).quantize(
+                            Decimal("1"),
+                            rounding=ROUND_HALF_UP,
+                        )
+                    else:
+                        values["base_pay"] = None
+                existing = slip_by_profile.get(profile.id)
+                if not has_value:
+                    if existing:
+                        existing.delete()
+                    continue
+
+                if existing:
+                    for field_name, _ in fields:
+                        setattr(existing, field_name, values[field_name])
+                    existing.save(update_fields=[f[0] for f in fields] + ["updated_at"])
+                else:
+                    SalarySlip.objects.create(profile=profile, year=year, month=month, **values)
+
+        if errors:
+            messages.error(request, "、".join(errors))
+        else:
+            messages.success(request, "薪資資料已更新。")
+
+        slips = SalarySlip.objects.filter(profile_id__in=employee_ids, year=year, month=month)
+        slip_by_profile = {slip.profile_id: slip for slip in slips}
+
+    roc_year = year - 1911 if year >= 1912 else year
+    roc_label = f"{roc_year}年{month}月"
+    prev_year = year - 1 if month == 1 else year
+    prev_month = 12 if month == 1 else month - 1
+    next_year = year + 1 if month == 12 else year
+    next_month = 1 if month == 12 else month + 1
+
+    rows = [{"profile": profile, "slip": slip_by_profile.get(profile.id)} for profile in profiles]
+
+    return render(
+        request,
+        "users/salary_manage.html",
+        {
+            "rows": rows,
+            "fields": fields,
+            "year": year,
+            "month": month,
+            "roc_label": roc_label,
+            "year_month": f"{year:04d}-{month:02d}",
+            "prev_year_month": f"{prev_year:04d}-{prev_month:02d}",
+            "next_year_month": f"{next_year:04d}-{next_month:02d}",
+            "today_str": today.strftime("%Y-%m-%d"),
+            "stores": Store.objects.all(),
+            "selected_store": store_value,
+            "total_salary_sum": total_salary_sum,
+        },
+    )
+
+
+@login_required
+def salary_list(request):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return redirect("users:login")
+
+    slips = SalarySlip.objects.filter(profile=profile).order_by("-year", "-month", "id")
+    return render(
+        request,
+        "users/salary_list.html",
+        {
+            "profile": profile,
+            "slips": slips,
+        },
+    )
+
+
+@login_required
+def salary_detail(request, slip_id):
+    try:
+        profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return redirect("users:login")
+
+    slip = SalarySlip.objects.filter(id=slip_id, profile=profile).select_related("profile__user").first()
+    if not slip:
+        messages.error(request, "找不到薪資單。")
+        return redirect("users:salary_list")
+
+    year = slip.year
+    month = slip.month
+    roc_year = year - 1911 if year >= 1912 else year
+
+    return render(
+        request,
+        "users/salary_detail.html",
+        {
+            "profile": profile,
+            "slip": slip,
+            "roc_year": roc_year,
+            "month": month,
+        },
+    )
 
 
 def _document_if_exists(doc):

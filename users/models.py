@@ -16,6 +16,10 @@ class UserProfile(models.Model):
         ("active", "在職"),
         ("inactive", "離職"),
     )
+    PAY_TYPES = (
+        ("hourly", "計時"),
+        ("salaried", "正職"),
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField("名稱", max_length=50, blank=True)
     real_name = models.CharField("真實姓名", max_length=50, blank=True)
@@ -48,6 +52,12 @@ class UserProfile(models.Model):
         max_length=10,
         choices=EMPLOYMENT_STATUS,
         default="active",
+    )
+    pay_type = models.CharField(
+        "薪資類型",
+        max_length=10,
+        choices=PAY_TYPES,
+        default="hourly",
     )
 
     def is_manager(self):
@@ -110,6 +120,39 @@ class WorkerDocument(models.Model):
 
     def __str__(self):
         return f"{self.profile_id}:{self.category}"
+
+
+class SalarySlip(models.Model):
+    profile = models.ForeignKey(
+        UserProfile,
+        on_delete=models.CASCADE,
+        related_name="salary_slips",
+    )
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField()
+    base_salary = models.DecimalField("底薪", max_digits=10, decimal_places=2, null=True, blank=True)
+    overtime_salary = models.DecimalField("加班薪資", max_digits=10, decimal_places=2, null=True, blank=True)
+    work_hours = models.DecimalField("上班時數", max_digits=10, decimal_places=2, null=True, blank=True)
+    overtime_hours = models.DecimalField("加班時數", max_digits=10, decimal_places=2, null=True, blank=True)
+    base_pay = models.DecimalField("底薪薪資", max_digits=12, decimal_places=2, null=True, blank=True)
+    overtime_pay = models.DecimalField("加班薪資(合計)", max_digits=12, decimal_places=2, null=True, blank=True)
+    insurance_transfer = models.DecimalField("保險+轉帳", max_digits=10, decimal_places=2, null=True, blank=True)
+    performance_bonus = models.DecimalField("業績獎金", max_digits=10, decimal_places=2, null=True, blank=True)
+    labor_insurance = models.DecimalField("勞建保", max_digits=10, decimal_places=2, null=True, blank=True)
+    extra_health_insurance = models.DecimalField("多扣兩個月健保", max_digits=10, decimal_places=2, null=True, blank=True)
+    responsibility_bonus = models.DecimalField("責任獎金", max_digits=10, decimal_places=2, null=True, blank=True)
+    perfect_attendance = models.DecimalField("全勤", max_digits=10, decimal_places=2, null=True, blank=True)
+    total_salary = models.DecimalField("總薪資", max_digits=12, decimal_places=2, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-year", "-month", "profile__name"]
+        constraints = [
+            models.UniqueConstraint(fields=["profile", "year", "month"], name="unique_salary_slip_per_month"),
+        ]
+
+    def __str__(self):
+        return f"{self.profile.display_name()} {self.year}-{self.month:02d}"
 
 
 @receiver(post_delete, sender=WorkerDocument)

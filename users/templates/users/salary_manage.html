@@ -73,7 +73,7 @@
                     <input
                       type="text"
                       inputmode="{% if field == 'work_hours' or field == 'overtime_hours' %}decimal{% else %}numeric{% endif %}"
-                      pattern="{% if field == 'work_hours' or field == 'overtime_hours' %}\\d*(\\.\\d{0,2})?{% else %}-?\\d*{% endif %}"
+                      pattern="{% if field == 'work_hours' or field == 'overtime_hours' %}\d*(\.\d{0,2})?{% else %}-?\d*{% endif %}"
                       class="form-control form-control-sm text-end salary-int-input"
                       name="slip-{{ row.profile.id }}-{{ field }}"
                       value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'' }}{% else %}{{ value|int_display }}{% endif %}"

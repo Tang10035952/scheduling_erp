@@ -132,12 +132,25 @@
   downloadImageButton.addEventListener("click", async () => {
     try {
       const canvas = await html2canvas(slipElement, { scale: 2, backgroundColor: "#ffffff" });
+      const dataUrl = canvas.toDataURL("image/png");
+      const filename = "salary-{{ slip.year }}-{{ slip.month }}.png";
       const link = document.createElement("a");
-      link.download = "salary-{{ slip.year }}-{{ slip.month }}.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      link.download = filename;
+      link.href = dataUrl;
+
+      if (typeof link.download === "string") {
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+
+      const opened = window.open(dataUrl, "_blank");
+      if (!opened) {
+        alert("請長按圖片另存下載。");
+      }
     } catch (error) {
-      alert("圖片下載失敗，請使用 PDF 下載。");
+      alert("圖片下載失敗，請稍後再試。");
     }
   });
 

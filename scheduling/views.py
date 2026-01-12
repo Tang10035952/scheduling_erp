@@ -355,11 +355,19 @@ def scheduling_timeline(request):
         day_list = [month_date.replace(day=i) for i in range(1, days_in_month + 1)]
         holiday_map = build_holiday_map(day_list)
 
+        self_order = Case(
+            When(id=profile.id, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
         workers = UserProfile.objects.filter(
             role__in=visible_roles,
             employment_status="active",
-        ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(role_order=role_order).select_related("user").order_by(
-            "role_order", "sort_order", "name", "user__username"
+        ).exclude(Q(name="系統管理員") | Q(user__username="系統管理員")).annotate(
+            role_order=role_order,
+            self_order=self_order,
+        ).select_related("user").order_by(
+            "self_order", "role_order", "sort_order", "name", "user__username"
         )
 
         shifts_qs = Shift.objects.filter(
@@ -1197,6 +1205,10 @@ def worker_schedule(request):
                 "display_name": worker.display_name(),
                 "day_cells": day_cells,
             })
+        for idx, row in enumerate(month_rows):
+            if row["employee"].id == profile.id:
+                month_rows.insert(0, month_rows.pop(idx))
+                break
     else:
         for worker in workers:
             day_entries = []
@@ -1252,6 +1264,10 @@ def worker_schedule(request):
                 "display_name": worker.display_name(),
                 "days": day_entries,
             })
+        for idx, row in enumerate(rows):
+            if row["employee"].id == profile.id:
+                rows.insert(0, rows.pop(idx))
+                break
 
     shift_create_url = reverse("scheduling:worker_shift_create")
     shift_update_url = reverse("scheduling:worker_shift_update")

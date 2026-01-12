@@ -610,7 +610,7 @@ def worker_profile(request):
         return redirect("users:create_worker")
 
     if request.method == "POST":
-        form = ManagerWorkerUpdateForm(request.POST, request.FILES)
+        form = ManagerWorkerUpdateForm(request.POST, request.FILES, require_store=False)
         if form.is_valid():
             profile.name = form.cleaned_data["display_name"].strip()
             profile.real_name = form.cleaned_data["real_name"].strip()

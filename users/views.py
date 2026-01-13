@@ -284,13 +284,22 @@ def reorder_workers(request):
     if not isinstance(ordered_ids, list) or not ordered_ids:
         return JsonResponse({"ok": False, "error": "缺少排序資料"}, status=400)
 
-    workers = list(UserProfile.objects.filter(role__in=MANAGED_ROLES, id__in=ordered_ids))
-    if len(workers) != len(ordered_ids):
+    normalized_ids = []
+    for value in ordered_ids:
+        try:
+            normalized_ids.append(int(value))
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "排序資料錯誤"}, status=400)
+    if len(set(normalized_ids)) != len(normalized_ids):
+        return JsonResponse({"ok": False, "error": "排序資料重複"}, status=400)
+
+    workers = list(UserProfile.objects.filter(role__in=MANAGED_ROLES, id__in=normalized_ids))
+    if len(workers) != len(normalized_ids):
         return JsonResponse({"ok": False, "error": "資料不完整，請重新整理"}, status=400)
 
     id_to_profile = {w.id: w for w in workers}
     updates = []
-    for idx, worker_id in enumerate(ordered_ids, start=1):
+    for idx, worker_id in enumerate(normalized_ids, start=1):
         profile = id_to_profile.get(worker_id)
         if profile.sort_order != idx:
             profile.sort_order = idx

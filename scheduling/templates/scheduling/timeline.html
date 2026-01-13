@@ -101,6 +101,55 @@
     animation: blink-warning 1.2s ease-in-out infinite;
 }
 
+.employee-order-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.employee-order-controls {
+    display: none;
+    align-items: center;
+    gap: 6px;
+}
+
+.employee-order-controls.is-active {
+    display: inline-flex;
+}
+
+.employee-order-status {
+    min-height: 1rem;
+    color: #6c757d;
+}
+
+.employee-order-status.is-error {
+    color: #dc3545;
+}
+
+.employee-order-mode .shift-cell,
+.employee-order-mode .shift-block,
+.employee-order-mode .shift-line,
+.employee-order-mode .timeline-grid {
+    cursor: not-allowed;
+}
+
+.timeline-row.employee-order-selected,
+.week-table tbody tr.employee-order-selected,
+.month-table tbody tr.employee-order-selected,
+.timeline-employee-column.employee-order-selected,
+.timeline-employee-header.employee-order-selected {
+    position: relative;
+    z-index: 6;
+}
+
+.timeline-row.employee-order-selected .timeline-name,
+.week-table tbody tr.employee-order-selected .name-cell,
+.month-table tbody tr.employee-order-selected .name-cell,
+.timeline-employee-header.employee-order-selected {
+    font-weight: 700;
+    color: #dc2626;
+}
+
 @keyframes blink-warning {
     0% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -773,6 +822,19 @@
     {% endif %}
 </form>
 
+{% if employees and can_manage_store %}
+<div class="employee-order-bar mb-3">
+    <button class="btn btn-outline-secondary" type="button" id="employeeOrderToggle">排序</button>
+    <div class="employee-order-controls" id="employeeOrderControls">
+        <button class="btn btn-outline-secondary btn-sm" type="button" id="employeeOrderUp" aria-label="往上移動">▲</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" id="employeeOrderDown" aria-label="往下移動">▼</button>
+        <button class="btn btn-primary btn-sm" type="button" id="employeeOrderSave">儲存排序</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" id="employeeOrderCancel">取消</button>
+    </div>
+    <div class="form-text employee-order-status" id="employeeOrderStatus"></div>
+</div>
+{% endif %}
+
 <div class="timeline-card{% if read_only %} timeline-readonly{% endif %}">
     {% if view == 'day' %}
         {% if day_layout == 'timeline' %}
@@ -1162,6 +1224,208 @@ const allowedEmployeeId = "{{ allowed_employee_id|default:'' }}";
 const canEditOwnOnly = "{{ can_edit_own_only|default:'' }}" === "True";
 const canManageStore = "{{ can_manage_store|default:'' }}" === "True";
 const breakRules = {{ break_rules_json|default:"[]"|safe }};
+{% if employees and can_manage_store %}
+const reorderWorkersUrl = "{% url 'users:reorder_workers' %}";
+const employeeOrderToggle = document.getElementById("employeeOrderToggle");
+const employeeOrderControls = document.getElementById("employeeOrderControls");
+const employeeOrderUp = document.getElementById("employeeOrderUp");
+const employeeOrderDown = document.getElementById("employeeOrderDown");
+const employeeOrderSave = document.getElementById("employeeOrderSave");
+const employeeOrderCancel = document.getElementById("employeeOrderCancel");
+const employeeOrderStatus = document.getElementById("employeeOrderStatus");
+const employeeOrderIdsInitial = [
+    {% for employee in employees %}
+    "{{ employee.id }}",
+    {% endfor %}
+];
+let employeeOrderIds = employeeOrderIdsInitial.slice();
+let employeeOrderActive = false;
+let employeeOrderSaving = false;
+let employeeOrderSelectedId = null;
+
+const setEmployeeOrderStatus = (message, isError = false) => {
+    if (!employeeOrderStatus) return;
+    employeeOrderStatus.textContent = message || "";
+    employeeOrderStatus.classList.toggle("is-error", Boolean(isError));
+};
+
+const syncEmployeeOrderButtons = () => {
+    if (!employeeOrderUp || !employeeOrderDown || !employeeOrderSave || !employeeOrderCancel) {
+        return;
+    }
+    const index = employeeOrderSelectedId ? employeeOrderIds.indexOf(employeeOrderSelectedId) : -1;
+    const disabled = !employeeOrderActive || employeeOrderSaving || index === -1;
+    employeeOrderUp.disabled = disabled || index <= 0;
+    employeeOrderDown.disabled = disabled || index === -1 || index >= employeeOrderIds.length - 1;
+    employeeOrderSave.disabled = !employeeOrderActive || employeeOrderSaving;
+    employeeOrderCancel.disabled = !employeeOrderActive || employeeOrderSaving;
+};
+
+const reorderCollection = (container, selector) => {
+    if (!container) return;
+    const rows = new Map();
+    container.querySelectorAll(selector).forEach((row) => {
+        const id = String(row.dataset.employeeId || "");
+        if (id) {
+            rows.set(id, row);
+        }
+    });
+    if (!rows.size) return;
+    const fragment = document.createDocumentFragment();
+    employeeOrderIds.forEach((id) => {
+        const row = rows.get(id);
+        if (row) {
+            fragment.appendChild(row);
+        }
+    });
+    if (fragment.childNodes.length) {
+        container.appendChild(fragment);
+    }
+};
+
+const applyEmployeeOrder = () => {
+    document.querySelectorAll(".week-table tbody, .month-table tbody").forEach((tbody) => {
+        reorderCollection(tbody, "tr[data-employee-id]");
+    });
+    document.querySelectorAll(".day-timeline-scroll").forEach((container) => {
+        reorderCollection(container, ".timeline-row[data-employee-id]");
+    });
+    document.querySelectorAll(".timeline-vertical-header").forEach((header) => {
+        reorderCollection(header, ".timeline-employee-header[data-employee-id]");
+    });
+    document.querySelectorAll(".timeline-vertical").forEach((container) => {
+        reorderCollection(container, ".timeline-employee-column[data-employee-id]");
+    });
+};
+
+const clearEmployeeOrderSelection = () => {
+    document.querySelectorAll(".employee-order-selected").forEach((el) => {
+        el.classList.remove("employee-order-selected");
+    });
+};
+
+const applyEmployeeOrderSelection = () => {
+    clearEmployeeOrderSelection();
+    if (!employeeOrderSelectedId) return;
+    const selectors = [
+        `.timeline-row[data-employee-id="${employeeOrderSelectedId}"]`,
+        `.week-table tbody tr[data-employee-id="${employeeOrderSelectedId}"]`,
+        `.month-table tbody tr[data-employee-id="${employeeOrderSelectedId}"]`,
+        `.timeline-employee-column[data-employee-id="${employeeOrderSelectedId}"]`,
+        `.timeline-employee-header[data-employee-id="${employeeOrderSelectedId}"]`,
+    ];
+    document.querySelectorAll(selectors.join(",")).forEach((el) => {
+        el.classList.add("employee-order-selected");
+    });
+};
+
+const setEmployeeOrderActive = (active) => {
+    employeeOrderActive = active;
+    document.body.classList.toggle("employee-order-mode", active);
+    if (employeeOrderControls) {
+        employeeOrderControls.classList.toggle("is-active", active);
+    }
+    if (!active) {
+        employeeOrderSelectedId = null;
+        clearEmployeeOrderSelection();
+        setEmployeeOrderStatus("");
+    } else {
+        setEmployeeOrderStatus("請點選要排序的員工");
+    }
+    if (employeeOrderToggle) {
+        employeeOrderToggle.classList.toggle("active", active);
+    }
+    syncEmployeeOrderButtons();
+};
+
+const saveEmployeeOrder = () => {
+    if (!reorderWorkersUrl) return;
+    employeeOrderSaving = true;
+    syncEmployeeOrderButtons();
+    setEmployeeOrderStatus("儲存中...");
+    fetch(reorderWorkersUrl, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ordered_ids: employeeOrderIds}),
+    })
+    .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+            throw new Error(data.error || "儲存失敗");
+        }
+        setEmployeeOrderStatus("已儲存");
+        employeeOrderIdsInitial.splice(0, employeeOrderIdsInitial.length, ...employeeOrderIds);
+        setEmployeeOrderActive(false);
+    })
+    .catch((err) => {
+        setEmployeeOrderStatus(err.message || "儲存失敗", true);
+    })
+    .finally(() => {
+        employeeOrderSaving = false;
+        syncEmployeeOrderButtons();
+    });
+};
+
+const cancelEmployeeOrder = () => {
+    employeeOrderIds = employeeOrderIdsInitial.slice();
+    applyEmployeeOrder();
+    setEmployeeOrderActive(false);
+};
+
+const moveSelectedEmployee = (direction) => {
+    if (!employeeOrderSelectedId) return;
+    const index = employeeOrderIds.indexOf(employeeOrderSelectedId);
+    if (index < 0) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= employeeOrderIds.length) {
+        return;
+    }
+    const updated = employeeOrderIds.slice();
+    [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
+    employeeOrderIds = updated;
+    applyEmployeeOrder();
+    applyEmployeeOrderSelection();
+    syncEmployeeOrderButtons();
+};
+
+const handleEmployeeOrderPick = (event) => {
+    if (!employeeOrderActive) return;
+    const target = event.target.closest(".timeline-name, .name-cell, .timeline-employee-header");
+    if (!target) return;
+    const row = target.closest("[data-employee-id]");
+    const employeeId = row ? String(row.dataset.employeeId || "") : "";
+    if (!employeeId) return;
+    event.preventDefault();
+    employeeOrderSelectedId = employeeId;
+    applyEmployeeOrderSelection();
+    setEmployeeOrderStatus("使用 ▲▼ 移動順序");
+    syncEmployeeOrderButtons();
+};
+
+if (employeeOrderToggle) {
+    employeeOrderToggle.addEventListener("click", () => {
+        if (employeeOrderActive) {
+            setEmployeeOrderActive(false);
+        } else {
+            setEmployeeOrderActive(true);
+        }
+    });
+}
+if (employeeOrderUp) {
+    employeeOrderUp.addEventListener("click", () => moveSelectedEmployee("up"));
+}
+if (employeeOrderDown) {
+    employeeOrderDown.addEventListener("click", () => moveSelectedEmployee("down"));
+}
+if (employeeOrderSave) {
+    employeeOrderSave.addEventListener("click", saveEmployeeOrder);
+}
+if (employeeOrderCancel) {
+    employeeOrderCancel.addEventListener("click", cancelEmployeeOrder);
+}
+document.addEventListener("click", handleEmployeeOrderPick);
+setEmployeeOrderActive(false);
+{% endif %}
 const rememberScroll = () => {
     try {
         sessionStorage.setItem("timelineScrollY", String(window.scrollY || 0));
@@ -1562,6 +1826,11 @@ document.querySelectorAll(".shift-block, .shift-line").forEach(block => {
     });
     block.addEventListener("click", function(e) {
         e.stopPropagation();
+        {% if employees and can_manage_store %}
+        if (employeeOrderActive) {
+            return;
+        }
+        {% endif %}
         if (!canEditEmployee(this.dataset.employeeId)) {
             return;
         }
@@ -1714,6 +1983,11 @@ document.querySelectorAll(".timeline-grid").forEach(grid => {
         if (e.target.closest(".shift-block")) {
             return;
         }
+        {% if employees and can_manage_store %}
+        if (employeeOrderActive) {
+            return;
+        }
+        {% endif %}
         const employee = resolveEmployeeFromGrid(this);
         if (!employee || !employee.id) {
             return;
@@ -1737,6 +2011,11 @@ document.querySelectorAll(".shift-cell").forEach(cell => {
         if (e.target.closest(".shift-line")) {
             return;
         }
+        {% if employees and can_manage_store %}
+        if (employeeOrderActive) {
+            return;
+        }
+        {% endif %}
         if (!canEditEmployee(this.dataset.employeeId)) {
             return;
         }

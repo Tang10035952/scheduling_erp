@@ -130,6 +130,7 @@
         <div class="col-md-3">
           <label class="form-label">生日{% if not is_create %}<span class="required-star">*</span>{% endif %}</label>
           {{ form.birthday|add_class:"form-control" }}
+          <div class="form-text" id="birthdayDisplay"></div>
           {% if form.birthday.errors %}
             <div class="text-danger small mt-1">{{ form.birthday.errors.0 }}</div>
           {% endif %}
@@ -459,6 +460,30 @@
   const tempPasswordModal = tempPasswordModalEl && window.bootstrap
     ? new window.bootstrap.Modal(tempPasswordModalEl)
     : null;
+  const birthdayInput = document.getElementById("id_birthday");
+  const birthdayDisplay = document.getElementById("birthdayDisplay");
+  const formatBirthday = (value) => {
+    if (!value) return "—";
+    const parts = value.split("-");
+    if (parts.length !== 3) return value;
+    const year = Number(parts[0]);
+    const month = String(parts[1]).padStart(2, "0");
+    const day = String(parts[2]).padStart(2, "0");
+    if (Number.isNaN(year)) return value;
+    const rocYear = year - 1911;
+    return `民國${rocYear}年${month}月${day}日`;
+  };
+
+  const syncBirthdayDisplay = () => {
+    if (!birthdayInput || !birthdayDisplay) return;
+    birthdayDisplay.textContent = formatBirthday(birthdayInput.value);
+  };
+
+  if (birthdayInput && birthdayDisplay) {
+    syncBirthdayDisplay();
+    birthdayInput.addEventListener("change", syncBirthdayDisplay);
+    birthdayInput.addEventListener("input", syncBirthdayDisplay);
+  }
   const confirmTempPasswordModalEl = document.getElementById("confirmTempPasswordModal");
   const confirmResetPasswordBtn = document.getElementById("confirmResetPasswordBtn");
   const confirmTempPasswordModal = confirmTempPasswordModalEl && window.bootstrap

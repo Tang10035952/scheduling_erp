@@ -1,100 +1,79 @@
 {% extends 'base.html' %}
 {% load form_filters %}
 {% block title %}員工註冊 - 餐飲排班 ERP 系統{% endblock %}
+{% block body_class %}auth-ui{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-12 col-md-8 col-lg-5 px-3">
-    <div class="card shadow-sm">
-      <div class="card-header bg-primary text-white text-center">
-        <h5 class="mb-0">員工註冊</h5>
+<div class="auth-shell">
+  <div class="auth-panel">
+    <header class="auth-header">
+      <p class="auth-kicker">Scheduling ERP</p>
+      <h1 class="auth-title">員工註冊</h1>
+    </header>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+    <form method="post" novalidate class="auth-form">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label">帳號</label>
+        {{ form.username|add_class:"form-control" }}
+        {% if form.username.errors %}
+          <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+        {% endif %}
       </div>
-      <div class="card-body">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}">
-              {{ message }}
-            </div>
-          {% endfor %}
+      <div class="mb-3">
+        <label class="form-label">名稱</label>
+        {{ form.name|add_class:"form-control" }}
+        {% if form.name.errors %}
+          <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
         {% endif %}
-        {% if form.non_field_errors %}
-          <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
-        {% endif %}
-        <form method="post" novalidate>
-          {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label">帳號</label>
-            {{ form.username|add_class:"form-control" }}
-            {% if form.username.errors %}
-              <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label">名稱</label>
-            {{ form.name|add_class:"form-control" }}
-            {% if form.name.errors %}
-              <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label">密碼</label>
-            <div class="password-field">
-              {{ form.password1|add_class:"form-control" }}
-              <button type="button" class="password-toggle" id="toggleRegisterPassword" aria-pressed="false" aria-label="顯示密碼">
-                <span class="icon-eye">
-                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                </span>
-                <span class="icon-eye-slash d-none">
-                  <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
-                </span>
-              </button>
-            </div>
-            {% if form.password1.errors %}
-              <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            <label class="form-label">再次確認密碼</label>
-            {{ form.password2|add_class:"form-control" }}
-            {% if form.password2.errors %}
-              <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <button type="submit" class="btn btn-primary w-100" {% if not allow_worker_register %}disabled{% endif %}>
-            註冊
+      </div>
+      <div class="mb-3">
+        <label class="form-label">密碼</label>
+        <div class="password-field">
+          {{ form.password1|add_class:"form-control" }}
+          <button type="button" class="password-toggle" id="toggleRegisterPassword" aria-pressed="false" aria-label="顯示密碼">
+            <span class="icon-eye">
+              <i class="fa-regular fa-eye" aria-hidden="true"></i>
+            </span>
+            <span class="icon-eye-slash d-none">
+              <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
+            </span>
           </button>
-        </form>
-        {% if not allow_worker_register %}
-          <small class="text-muted d-block mt-2">目前未開放員工註冊，請聯繫店長。</small>
+        </div>
+        {% if form.password1.errors %}
+          <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
         {% endif %}
-        <a class="btn btn-outline-secondary w-100 mt-3" href="{% url 'users:login' %}">返回登入</a>
       </div>
+      <div class="mb-3">
+        <label class="form-label">再次確認密碼</label>
+        {{ form.password2|add_class:"form-control" }}
+        {% if form.password2.errors %}
+          <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
+        {% endif %}
+      </div>
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary w-100 auth-primary" {% if not allow_worker_register %}disabled{% endif %}>
+          註冊
+        </button>
+      </div>
+    </form>
+    {% if not allow_worker_register %}
+      <small class="auth-note d-block mt-2">目前未開放員工註冊，請聯繫店長。</small>
+    {% endif %}
+    <div class="auth-actions mt-3">
+      <a class="btn btn-outline-secondary w-100 auth-secondary" href="{% url 'users:login' %}">返回登入</a>
     </div>
   </div>
 </div>
-{% endblock %}
-{% block extra_css %}
-<style>
-  .password-field {
-    position: relative;
-  }
-  .password-field .form-control {
-    padding-right: 2.5rem;
-  }
-  .password-toggle {
-    position: absolute;
-    top: 50%;
-    right: 0.5rem;
-    transform: translateY(-50%);
-    border: none;
-    background: transparent;
-    padding: 0;
-    color: #6b7280;
-  }
-  .password-toggle:focus {
-    outline: none;
-  }
-</style>
 {% endblock %}
 {% block extra_js %}
 <script>

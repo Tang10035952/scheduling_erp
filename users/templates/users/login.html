@@ -1,88 +1,68 @@
 {% extends 'base.html' %}
 {% load form_filters %}
 {% block title %}登入 - 餐飲排班 ERP 系統{% endblock %}
+{% block body_class %}auth-ui{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-12 col-md-8 col-lg-5 px-3">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white text-center">
-                <h5 class="mb-0">員工 / 店長登入</h5>
-            </div>
-            <div class="card-body">
-                {% if messages %}
-                  {% for message in messages %}
-                    <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}">
-                      {{ message }}
-                    </div>
-                  {% endfor %}
-                {% endif %}
-                {% if form.errors %}
-                <div class="alert alert-danger">
-                    帳號或密碼錯誤，請再試一次。
-                </div>
-                {% endif %}
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">帳號</label>
-                        {{ form.username|add_class:"form-control" }}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">密碼</label>
-                        <div class="password-field">
-                          {{ form.password|add_class:"form-control" }}
-                          <button type="button" class="password-toggle" id="toggleLoginPassword" aria-pressed="false" aria-label="顯示密碼">
-                            <span class="icon-eye">
-                              <i class="fa-regular fa-eye" aria-hidden="true"></i>
-                            </span>
-                            <span class="icon-eye-slash d-none">
-                              <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
-                            </span>
-                          </button>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="rememberLogin">
-                            <label class="form-check-label" for="rememberLogin">記住帳密</label>
-                        </div>
-                        <a class="btn btn-link p-0" href="{% url 'users:password_reset_temp' %}">忘記密碼／重設密碼</a>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">登入</button>
-                </form>
-                {% if allow_worker_register %}
-                  <a class="btn btn-outline-primary w-100 mt-3" href="{% url 'users:register' %}">註冊</a>
-                {% else %}
-                  <button type="button" class="btn btn-outline-secondary w-100 mt-3" disabled>註冊</button>
-                {% endif %}
+<div class="auth-shell">
+  <div class="auth-panel">
+    <header class="auth-header">
+      <p class="auth-kicker">Scheduling ERP</p>
+      <h1 class="auth-title">員工 / 店長登入</h1>
+      <p class="auth-subtitle">餐飲門店排班管理入口，快速查看與執行班表作業。</p>
+    </header>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        帳號或密碼錯誤，請再試一次。
+    </div>
+    {% endif %}
+    <form method="post" novalidate class="auth-form">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">帳號</label>
+            {{ form.username|add_class:"form-control" }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">密碼</label>
+            <div class="password-field">
+              {{ form.password|add_class:"form-control" }}
+              <button type="button" class="password-toggle" id="toggleLoginPassword" aria-pressed="false" aria-label="顯示密碼">
+                <span class="icon-eye">
+                  <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                </span>
+                <span class="icon-eye-slash d-none">
+                  <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
+                </span>
+              </button>
             </div>
         </div>
+        <div class="auth-meta mb-3">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="rememberLogin">
+                <label class="form-check-label" for="rememberLogin">記住帳號</label>
+            </div>
+            <a class="auth-link" href="{% url 'users:password_reset_temp' %}">忘記密碼／重設密碼</a>
+        </div>
+        <div class="auth-actions">
+          <button type="submit" class="btn btn-primary w-100 auth-primary">登入</button>
+        </div>
+    </form>
+    <div class="auth-actions mt-3">
+      {% if allow_worker_register %}
+        <a class="btn btn-outline-secondary w-100 auth-secondary" href="{% url 'users:register' %}">註冊</a>
+      {% else %}
+        <button type="button" class="btn btn-outline-secondary w-100 auth-secondary" disabled>註冊</button>
+      {% endif %}
     </div>
+  </div>
 </div>
-{% endblock %}
-{% block extra_css %}
-<style>
-  .password-field {
-    position: relative;
-  }
-  .password-field .form-control {
-    padding-right: 2.5rem;
-  }
-  .password-toggle {
-    position: absolute;
-    top: 50%;
-    right: 0.5rem;
-    transform: translateY(-50%);
-    border: none;
-    background: transparent;
-    padding: 0;
-    color: #6b7280;
-  }
-  .password-toggle:focus {
-    outline: none;
-  }
-</style>
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -107,12 +87,11 @@
     });
   }
 
-  if (rememberLogin && loginUsername && loginPassword) {
+  if (rememberLogin && loginUsername) {
     try {
       const stored = JSON.parse(localStorage.getItem(rememberKey) || "null");
       if (stored && stored.username) {
         loginUsername.value = stored.username;
-        loginPassword.value = stored.password || "";
         rememberLogin.checked = true;
       }
     } catch (err) {
@@ -124,7 +103,7 @@
         if (rememberLogin.checked) {
           localStorage.setItem(
             rememberKey,
-            JSON.stringify({ username: loginUsername.value, password: loginPassword.value })
+            JSON.stringify({ username: loginUsername.value })
           );
         } else {
           localStorage.removeItem(rememberKey);

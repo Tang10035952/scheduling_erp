@@ -2298,22 +2298,24 @@
 
         const allowEmptyRows = showEmptyRowsInput && showEmptyRowsInput.checked;
         const applyRowVisibility = (row, selector) => {
-            const employeeId = (row.dataset.employeeId || "").trim();
+            const employeeId = row.getAttribute("data-employee-id") || "";
             if (allowedEmployeeId && employeeId && String(employeeId) === String(allowedEmployeeId)) {
                 row.classList.remove("d-none");
                 return;
             }
-            const employeeMatch = showAllEmployees || !employeeId || employeeSet.has(employeeId);
+            const employeeMatch = showAllEmployees || !employeeId || employeeSet.has(String(employeeId));
             if (!employeeMatch) {
                 row.classList.add("d-none");
                 return;
             }
+            const allowEmptyRows = showEmptyRowsInput && showEmptyRowsInput.checked;
+            const hasVisibleShifts = row.querySelectorAll(selector).length > 0;
+
             if (allowEmptyRows) {
                 row.classList.remove("d-none");
-                return;
+            } else {
+                row.classList.toggle("d-none", !hasVisibleShifts);
             }
-            const visible = row.querySelector(selector);
-            row.classList.toggle("d-none", !visible);
         };
         document.querySelectorAll(".timeline-row").forEach((row) => {
             applyRowVisibility(row, ".shift-block:not(.d-none), .shift-line:not(.d-none)");

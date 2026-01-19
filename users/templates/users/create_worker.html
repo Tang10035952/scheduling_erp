@@ -231,26 +231,55 @@
   #workerTable tbody tr:hover {
     background-color: #f3f6f9;
   }
-  #workerTable thead th:nth-child(1),
-  #workerTable tbody td:nth-child(1) {
-    position: sticky;
-    left: 0;
-    z-index: 3;
-    background: #fff;
-    box-shadow: 2px 0 0 #d1d9e2;
-  }
-  #workerTable thead th:nth-child(2),
-  #workerTable tbody td:nth-child(2) {
-    position: sticky;
-    left: 60px;
-    z-index: 3;
-    background: #fff;
-    box-shadow: 2px 0 0 #d1d9e2;
-  }
+    #workerTable thead th:nth-child(1),
+    #workerTable tbody td:nth-child(1) {
+      position: sticky;
+      left: 0;
+      z-index: 4; /* Increased z-index for tbody cells */
+      background-color: #fff; /* Explicit background color */
+      min-width: 60px; /* Reverted min-width for sequence number column */
+      transform: translateZ(0); /* Force hardware acceleration */
+      border-right: none; /* Remove default border-right */
+    }
+  
+    #workerTable thead th:nth-child(1)::after,
+    #workerTable tbody td:nth-child(1)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 1px;
+      background-color: #d1d9e2;
+      z-index: 1; /* Lower than cell content but above table scroll */
+    }
+  
+    #workerTable thead th:nth-child(2),
+    #workerTable tbody td:nth-child(2) {
+      position: sticky;
+      left: 60px; /* Adjusted left position for name column */
+      z-index: 4; /* Increased z-index for tbody cells */
+      background-color: #fff; /* Explicit background color */
+      min-width: 150px; /* Ensure minimum width for name column */
+      transform: translateZ(0); /* Force hardware acceleration */
+      border-right: none; /* Remove default border-right */
+    }
+  
+    #workerTable thead th:nth-child(2)::after,
+    #workerTable tbody td:nth-child(2)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 1px;
+      background-color: #d1d9e2;
+      z-index: 1; /* Lower than cell content but above table scroll */
+    }
   #workerTable thead th:nth-child(1),
   #workerTable thead th:nth-child(2) {
     background-color: #d6dde5 !important;
-    z-index: 4;
+    z-index: 5; /* Increased z-index for thead cells */
   }
 </style>
 {% endblock %}

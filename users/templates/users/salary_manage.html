@@ -3,263 +3,222 @@
 {% block title %}薪資管理{% endblock %}
 
 {% block content %}
-<div class="salary-page-wide">
-<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-2">
-  <div>
-    <h4 class="mb-1">薪資管理</h4>
-    <div class="text-muted">手動填寫薪資欄位</div>
-  </div>
-</div>
-{% if messages %}
-  {% for message in messages %}
-    <div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>
-  {% endfor %}
-{% endif %}
-<form class="d-flex flex-wrap align-items-end gap-2 mb-3" method="get">
-  <div class="btn-group" role="group" aria-label="month nav">
-    <button class="btn btn-outline-secondary" type="button" id="prevBtn">‹</button>
-    <button class="btn btn-outline-secondary" type="button" id="todayBtn">本月</button>
-    <button class="btn btn-outline-secondary" type="button" id="nextBtn">›</button>
-  </div>
-  <div>
-    <label class="form-label mb-1 visually-hidden">年月</label>
-    <input id="monthInput" type="month" class="form-control" name="year_month" value="{{ year_month }}" required>
-  </div>
-  <div>
-    <label class="form-label mb-1 visually-hidden">店別</label>
-    <select class="form-select" name="store" id="storeSelect">
-      <option value="all" {% if selected_store == "all" %}selected{% endif %}>全部店別</option>
-      {% for store in stores %}
-        <option value="{{ store.id }}" {% if selected_store == store.id|stringformat:"s" %}selected{% endif %}>{{ store.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-</form>
-
-<div class="card shadow-sm mb-4">
-  <div class="card-header salary-title-bar d-flex justify-content-between flex-wrap gap-2">
+<div class="container">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-2">
     <div>
-      <strong>{{ roc_label }} 薪資明細</strong>
+      <h4 class="mb-1">薪資管理</h4>
+      <div class="text-muted">手動填寫薪資欄位</div>
     </div>
-    <div class="text-muted">本月排班員工：{{ total_count }}</div>
   </div>
-  <div class="card-body">
-    {% if not total_count %}
-      <div class="text-muted">此月份尚無排班員工。</div>
-    {% else %}
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="year_month" value="{{ year_month }}">
-        <input type="hidden" name="store" value="{{ selected_store }}">
-        <div class="table-responsive salary-table-scroll">
-          <div class="salary-section-block" data-section="salaried">
-            <div class="salary-section-label">正職人員</div>
-            <table class="table table-bordered align-middle text-center salary-table">
-              <thead class="salary-header-dark">
-                <tr>
-                  <th class="sticky-col">姓名</th>
-                  {% for field, label in fields %}
-                    {% if field == "total_salary" %}
-                      <th>
-                        <div>{{ label }}</div>
-                        <div class="small">(A+B+C+D+E+F+G+H)</div>
-                      </th>
-                    {% else %}
-                      <th>{{ label }}</th>
-                    {% endif %}
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in salaried_rows %}
-                <tr data-profile-id="{{ row.profile.id }}" data-pay-type="{{ row.pay_type }}">
-                  <td class="sticky-col text-center fw-semibold">{{ row.profile.display_name }}</td>
-                  {% for field, label in fields %}
-                    {% with value=row.slip|getattr:field %}
-                    <td class="salary-cell-wrap">
-                      {% if field == "pay_type" %}
-                        <select class="form-select form-select-sm salary-pay-type" name="slip-{{ row.profile.id }}-{{ field }}">
-                          {% for value, label in pay_type_choices %}
-                            <option value="{{ value }}" {% if row.pay_type == value %}selected{% endif %}>{{ label }}</option>
-                          {% endfor %}
-                        </select>
-                      {% else %}
-                        <div
-                          class="salary-cell text-end"
-                          data-field="{{ field }}"
-                          {% if field == "work_hours" or field == "overtime_hours" %}data-decimal="true"{% endif %}
-                          {% if field == "total_salary" or field == "base_pay" and row.pay_type == "hourly" %}data-readonly="true" contenteditable="false"{% else %}contenteditable="true"{% endif %}
-                        >{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}</div>
-                        <input type="hidden" name="slip-{{ row.profile.id }}-{{ field }}" value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}">
-                      {% endif %}
-                    </td>
-                    {% endwith %}
-                  {% endfor %}
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
 
-          <div class="salary-section-block" data-section="hourly">
-            <div class="salary-section-label">計時人員</div>
-            <table class="table table-bordered align-middle text-center salary-table">
-              <thead class="salary-header-dark">
-                <tr>
-                  <th class="sticky-col">姓名</th>
-                  {% for field, label in fields %}
-                    {% if field == "total_salary" %}
-                      <th>
-                        <div>{{ label }}</div>
-                        <div class="small">(A+B+C+D+E+F+G+H)</div>
-                      </th>
-                    {% else %}
-                      <th>{{ label }}</th>
-                    {% endif %}
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in hourly_rows %}
-                <tr data-profile-id="{{ row.profile.id }}" data-pay-type="{{ row.pay_type }}">
-                  <td class="sticky-col text-center fw-semibold">{{ row.profile.display_name }}</td>
-                  {% for field, label in fields %}
-                    {% with value=row.slip|getattr:field %}
-                    <td class="salary-cell-wrap">
-                      {% if field == "pay_type" %}
-                        <select class="form-select form-select-sm salary-pay-type" name="slip-{{ row.profile.id }}-{{ field }}">
-                          {% for value, label in pay_type_choices %}
-                            <option value="{{ value }}" {% if row.pay_type == value %}selected{% endif %}>{{ label }}</option>
-                          {% endfor %}
-                        </select>
-                      {% else %}
-                        <div
-                          class="salary-cell text-end"
-                          data-field="{{ field }}"
-                          {% if field == "work_hours" or field == "overtime_hours" %}data-decimal="true"{% endif %}
-                          {% if field == "total_salary" or field == "base_pay" and row.pay_type == "hourly" %}data-readonly="true" contenteditable="false"{% else %}contenteditable="true"{% endif %}
-                        >{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}</div>
-                        <input type="hidden" name="slip-{{ row.profile.id }}-{{ field }}" value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}">
-                      {% endif %}
-                    </td>
-                    {% endwith %}
-                  {% endfor %}
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-success{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
 
+  <form class="d-flex flex-wrap align-items-end gap-2 mb-3" method="get">
+    <div class="btn-group" role="group" aria-label="month nav">
+      <button class="btn btn-outline-secondary" type="button" id="prevBtn">‹</button>
+      <button class="btn btn-outline-secondary" type="button" id="todayBtn">本月</button>
+      <button class="btn btn-outline-secondary" type="button" id="nextBtn">›</button>
+    </div>
+    <div>
+      <label class="form-label mb-1 visually-hidden">年月</label>
+      <input id="monthInput" type="month" class="form-control" name="year_month" value="{{ year_month }}" required>
+    </div>
+    <div>
+      <label class="form-label mb-1 visually-hidden">店別</label>
+      <select class="form-select" name="store" id="storeSelect">
+        <option value="all" {% if selected_store == "all" %}selected{% endif %}>全部店別</option>
+        {% for store in stores %}
+          <option value="{{ store.id }}" {% if selected_store == store.id|stringformat:"s" %}selected{% endif %}>{{ store.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header salary-title-bar d-flex justify-content-between flex-wrap gap-2">
+      <div>
+        <strong>{{ roc_label }} 薪資明細</strong>
+      </div>
+      <div class="text-muted">本月排班員工：{{ total_count }}</div>
+    </div>
+    <div class="card-body">
+      {% if not total_count %}
+        <div class="text-muted">此月份尚無排班員工。</div>
+      {% else %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="year_month" value="{{ year_month }}">
+          <input type="hidden" name="store" value="{{ selected_store }}">
+          <div class="table-container">
+            <div class="table-responsive salary-table-scroll">
+              <table class="table table-bordered align-middle text-center salary-table">
+                <thead class="salary-header-dark">
+                  <tr>
+                    <th class="sticky-col">姓名</th>
+                    {% for field, label in fields %}
+                      {% if field == "total_salary" %}
+                        <th>
+                          <div>{{ label }}</div>
+                          <div class="small">(A+B+C+D+E+F+G+H)</div>
+                        </th>
+                      {% else %}
+                        <th>{{ label }}</th>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if salaried_rows %}
+                    <tr class="salary-section-row salary-section-separator" data-section-type="salaried">
+                      <th class="sticky-col">正職人員</th>
+                      <th colspan="{{ fields|length }}"></th>
+                    </tr>
+                    {% for row in salaried_rows %}
+                      <tr data-profile-id="{{ row.profile.id }}" data-pay-type="{{ row.pay_type }}">
+                        <td class="sticky-col text-center fw-semibold">{{ row.profile.display_name }}</td>
+                        {% for field, label in fields %}
+                          {% with value=row.slip|getattr:field %}
+                            <td class="salary-cell-wrap">
+                              {% if field == "pay_type" %}
+                                <select class="form-select form-select-sm salary-pay-type" name="slip-{{ row.profile.id }}-{{ field }}">
+                                  {% for choice_val, choice_label in pay_type_choices %}
+                                    <option value="{{ choice_val }}" {% if row.pay_type == choice_val %}selected{% endif %}>{{ choice_label }}</option>
+                                  {% endfor %}
+                                </select>
+                              {% else %}
+                                <div class="salary-cell text-center" 
+                                     data-field="{{ field }}" 
+                                     {% if field == "work_hours" or field == "overtime_hours" %}data-decimal="true"{% endif %}
+                                     {% if field == "total_salary" or field == "base_pay" and row.pay_type == "hourly" %}data-readonly="true" contenteditable="false"{% else %}contenteditable="true"{% endif %}>
+                                  {% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}
+                                </div>
+                                <input type="hidden" name="slip-{{ row.profile.id }}-{{ field }}" value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}">
+                              {% endif %}
+                            </td>
+                          {% endwith %}
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+
+                  {% if hourly_rows %}
+                    <tr class="salary-section-row salary-section-separator" data-section-type="hourly">
+                      <th class="sticky-col">計時人員</th>
+                      <th colspan="{{ fields|length }}"></th>
+                    </tr>
+                    {% for row in hourly_rows %}
+                      <tr data-profile-id="{{ row.profile.id }}" data-pay-type="{{ row.pay_type }}">
+                        <td class="sticky-col text-center fw-semibold">{{ row.profile.display_name }}</td>
+                        {% for field, label in fields %}
+                          {% with value=row.slip|getattr:field %}
+                            <td class="salary-cell-wrap">
+                              {% if field == "pay_type" %}
+                                <select class="form-select form-select-sm salary-pay-type" name="slip-{{ row.profile.id }}-{{ field }}">
+                                  {% for choice_val, choice_label in pay_type_choices %}
+                                    <option value="{{ choice_val }}" {% if row.pay_type == choice_val %}selected{% endif %}>{{ choice_label }}</option>
+                                  {% endfor %}
+                                </select>
+                              {% else %}
+                                <div class="salary-cell text-center" 
+                                     data-field="{{ field }}" 
+                                     {% if field == "work_hours" or field == "overtime_hours" %}data-decimal="true"{% endif %}
+                                     {% if field == "total_salary" or field == "base_pay" and row.pay_type == "hourly" %}data-readonly="true" contenteditable="false"{% else %}contenteditable="true"{% endif %}>
+                                  {% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}
+                                </div>
+                                <input type="hidden" name="slip-{{ row.profile.id }}-{{ field }}" value="{% if field == 'work_hours' or field == 'overtime_hours' %}{{ value|default_if_none:'0' }}{% else %}{{ value|int_display }}{% endif %}">
+                              {% endif %}
+                            </td>
+                          {% endwith %}
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div class="salary-total-summary">
             <span class="salary-total-label">總薪資統計：</span>
             <span class="salary-total-value" id="totalSalarySum">{{ total_salary_sum|int_display }}</span>
           </div>
-        </div>
-        <div class="text-end">
-          <button class="btn btn-primary">儲存薪資資料</button>
-        </div>
-      </form>
-    {% endif %}
+          <div class="text-end mt-4">
+            <button class="btn btn-primary">儲存薪資資料</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
   </div>
-</div>
 
-<style>
-  .salary-page-wide {
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-    padding: 0 12px;
-  }
-  .salary-title-bar {
-    background: #e0e0e0;
-  }
-  .salary-table th,
-  .salary-table td {
-    min-width: 90px;
-    font-size: 0.9rem;
-  }
-  .salary-table-scroll {
-    max-height: calc(100vh - 260px);
-    overflow: auto;
-  }
-  .salary-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-  }
-  .salary-header-dark th {
-    background: #000000ec;
-    color: #fff;
-    border-color: #fff !important;
-  }
-  .salary-table thead.salary-header-dark .sticky-col {
-    background: #000000ec;
-    color: #fff;
-    border-color: #fff !important;
-    z-index: 6;
-  }
-  .salary-table thead.salary-header-dark tr {
-    border-bottom: 1px solid #fff !important;
-  }
-  .salary-table thead.salary-header-dark th + th {
-    border-left: 1px solid #fff !important;
-  }
-  .salary-table .sticky-col {
-    position: sticky;
-    left: 0;
-    background: #fff;
-    z-index: 2;
-  }
-  .salary-table thead .sticky-col {
-    z-index: 3;
-  }
-  .salary-table td,
-  .salary-table th {
-    border-color: #000;
-  }
-  .salary-table {
-    border: 2px solid #000;
-    position: relative;
-  }
-  .salary-table > :not(caption) > * > * {
-    border-color: #000;
-  }
-  .salary-cell-wrap {
-    padding: 0;
-  }
-  .salary-cell {
-    min-height: 32px;
-    padding: 6px 8px;
-    outline: none;
-    white-space: nowrap;
-    font-weight: 500;
-    font-size: 1rem;
-  }
-  .salary-cell.negative {
-    color: #c00000;
-  }
-  .salary-cell[data-readonly="true"] {
-    background: #f8f9fa;
-  }
-  .salary-section-label {
-    margin: 3px 0 8px;
-    padding: 4px 8px;
-    background: #f8f9fa;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-  }
-  .salary-total-summary {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 6px;
-    margin: 0 0 20px 0;
-    font-weight: 800;
-    font-size: 1.2rem;
-  }
-  .salary-total-value {
-    font-size: 1.5rem;
-  }
-</style>
+  <style>
+    .container { max-width: 1400px; margin: 0 auto; }
+    @media (min-width: 1600px) { .container { max-width: 92vw; } }
+    .table-container { border: 1px solid #dee2e6; border-radius: 0.375rem; overflow: hidden; position: relative; }
+    .salary-table-scroll { max-height: calc(100vh - 300px); overflow: auto; }
+    .salary-title-bar { background: #e9ecef; }
+    .salary-table { border-collapse: separate; border-spacing: 0; min-width: 1800px; }
+    
+    .salary-table th, .salary-table td { 
+      min-width: 55px;
+      padding: 4px 2px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      border-bottom: 1px solid #f1f5f9;
+      border-top: none;
+    }
+
+    .salary-table thead th { position: sticky; top: 0; z-index: 5; background: #343a40; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+    
+    .salary-table .sticky-col { 
+      position: sticky; 
+      left: 0; 
+      z-index: 2; 
+      width: 100px; 
+      min-width: 100px; 
+      max-width: 100px; 
+      background-color: #fff; 
+      box-shadow: 1px 0 2px rgba(0, 0, 0, 0.15); 
+    }
+
+    .salary-header-dark .sticky-col { z-index: 6; box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25); background-color: #343a40 !important; }
+    
+    .salary-section-separator > th { 
+      background-color: #e9ecef !important; 
+      font-size: 1rem; 
+      font-weight: 700; 
+      text-align: left !important; 
+      padding: 0.5rem 1rem !important; 
+      border-top: 1px solid #dee2e6 !important; 
+      border-bottom: 1px solid #dee2e6 !important; 
+    }
+
+    .salary-section-separator > th.sticky-col {
+      background-color: #e9ecef !important;
+      z-index: 3;
+      border-right: none !important;
+      box-shadow: none !important;
+    }
+
+    .salary-section-separator > th[colspan] {
+      border-left: none !important;
+    }
+
+    .salary-cell[data-readonly="true"] { background: #e9ecef; }
+    .salary-cell { min-height: 32px; padding: 6px 4px; outline: none; font-weight: 500; font-size: 0.95rem; }
+    
+    /* 修正處：負數變紅色 */
+    .salary-cell.negative { 
+      color: #dc3545 !important; 
+      font-weight: 700;
+    }
+    
+    .salary-total-summary { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin: 1rem 0; font-weight: 800; font-size: 1.2rem; }
+  </style>
 </div>
 {% endblock %}
 
@@ -270,39 +229,31 @@
     const syncMonthInputFromUrl = () => {
       const params = new URLSearchParams(window.location.search);
       const urlMonth = params.get("year_month");
-      if (urlMonth) {
-        monthInput.value = urlMonth;
-      }
+      if (urlMonth) monthInput.value = urlMonth;
     };
     syncMonthInputFromUrl();
     window.addEventListener("popstate", syncMonthInputFromUrl);
     window.addEventListener("pageshow", syncMonthInputFromUrl);
-    monthInput.addEventListener("change", function() {
-      this.form.submit();
-    });
+    monthInput.addEventListener("change", function () { this.form.submit(); });
   }
 
   const storeSelect = document.getElementById("storeSelect");
   if (storeSelect) {
-    storeSelect.addEventListener("change", function() {
-      this.form.submit();
-    });
+    storeSelect.addEventListener("change", function () { this.form.submit(); });
   }
-
 
   const prevBtn = document.getElementById("prevBtn");
   const nextBtn = document.getElementById("nextBtn");
   const todayBtn = document.getElementById("todayBtn");
 
   if (prevBtn && nextBtn && monthInput) {
-    prevBtn.addEventListener("click", function() {
+    prevBtn.addEventListener("click", function () {
       const [y, m] = monthInput.value.split("-").map(Number);
       const dt = new Date(y, m - 2, 1);
       monthInput.value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
       monthInput.form.submit();
     });
-
-    nextBtn.addEventListener("click", function() {
+    nextBtn.addEventListener("click", function () {
       const [y, m] = monthInput.value.split("-").map(Number);
       const dt = new Date(y, m, 1);
       monthInput.value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
@@ -311,7 +262,7 @@
   }
 
   if (todayBtn && monthInput) {
-    todayBtn.addEventListener("click", function() {
+    todayBtn.addEventListener("click", function () {
       const today = "{{ today_str }}";
       if (!today) return;
       const [y, m] = today.split("-").map(Number);
@@ -325,20 +276,16 @@
   const csrfTokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
   const csrfToken = csrfTokenInput ? csrfTokenInput.value : "";
   const yearMonthInput = document.querySelector('input[name="year_month"]');
+  
+  // 包含所有需要計算總和與偵測負數的欄位
   const totalFields = [
-    "base_pay",
-    "overtime_pay",
-    "insurance_transfer",
-    "performance_bonus",
-    "labor_insurance",
-    "extra_health_insurance",
-    "responsibility_bonus",
-    "perfect_attendance",
+    "base_pay", "overtime_pay", "insurance_transfer", "performance_bonus", 
+    "labor_insurance", "extra_health_insurance", "responsibility_bonus", "perfect_attendance"
   ];
 
   const toInt = (value) => {
     if (!value) return 0;
-    const parsed = parseInt(value, 10);
+    const parsed = parseInt(value.replace(/,/g, ""), 10);
     return Number.isNaN(parsed) ? 0 : parsed;
   };
 
@@ -348,16 +295,16 @@
     let sum = 0;
     rows.forEach((row) => {
       const cell = row.querySelector('.salary-cell[data-field="total_salary"]');
-      if (cell) {
-        sum += toInt(cell.textContent);
-      }
+      if (cell) sum += toInt(cell.textContent);
     });
-    totalCell.textContent = sum;
+    totalCell.textContent = sum.toLocaleString();
   };
 
+  // 負數偵測與變色邏輯
   const updateNegativeState = (cell) => {
     if (!cell) return;
     const value = cell.textContent.trim();
+    // 檢查是否以減號開頭且不只是減號
     if (value.startsWith("-") && value !== "-") {
       cell.classList.add("negative");
     } else {
@@ -370,25 +317,18 @@
       const baseSalaryCell = row.querySelector('.salary-cell[data-field="base_salary"]');
       const workHoursCell = row.querySelector('.salary-cell[data-field="work_hours"]');
       const basePayCell = row.querySelector('.salary-cell[data-field="base_pay"]');
-      const baseSalaryRaw = baseSalaryCell ? baseSalaryCell.textContent.trim() : "";
-      const workHoursRaw = workHoursCell ? workHoursCell.textContent.trim() : "";
-      const baseSalary = parseFloat(baseSalaryRaw);
-      const workHours = parseFloat(workHoursRaw);
+      const baseSalary = parseFloat(baseSalaryCell?.textContent.trim() || 0);
+      const workHours = parseFloat(workHoursCell?.textContent.trim() || 0);
       if (basePayCell) {
-        if (baseSalaryRaw !== "" && workHoursRaw !== "" && !Number.isNaN(baseSalary) && !Number.isNaN(workHours)) {
-          basePayCell.textContent = Math.round(baseSalary * workHours);
-        } else {
-          basePayCell.textContent = "0";
-        }
+        basePayCell.textContent = Math.round(baseSalary * workHours);
         syncHiddenInput(basePayCell);
+        updateNegativeState(basePayCell);
       }
     }
     let sum = 0;
     totalFields.forEach((field) => {
       const cell = row.querySelector(`.salary-cell[data-field="${field}"]`);
-      if (cell) {
-        sum += toInt(cell.textContent);
-      }
+      if (cell) sum += toInt(cell.textContent);
     });
     const totalCell = row.querySelector('.salary-cell[data-field="total_salary"]');
     if (totalCell) {
@@ -399,76 +339,13 @@
     updateOverallTotal();
   };
 
-  const sanitizeIntegerText = (value) => {
-    let raw = value.replace(/[^\d-]/g, "");
-    if (raw.includes("-")) {
-      raw = (raw.startsWith("-") ? "-" : "") + raw.replace(/-/g, "");
-    }
-    return raw;
-  };
-
-  const sanitizeDecimalText = (value) => {
-    let raw = value.replace(/[^\d.]/g, "");
-    const firstDot = raw.indexOf(".");
-    if (firstDot !== -1) {
-      const before = raw.slice(0, firstDot);
-      let after = raw.slice(firstDot + 1).replace(/\./g, "");
-      after = after.slice(0, 2);
-      raw = `${before}.${after}`;
-    }
-    return raw;
-  };
-
-  const getCaretOffset = (cell) => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return null;
-    const range = selection.getRangeAt(0);
-    if (!cell.contains(range.startContainer)) return null;
-    const preRange = range.cloneRange();
-    preRange.selectNodeContents(cell);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    return preRange.toString().length;
-  };
-
-  const setCaretOffset = (cell, offset) => {
-    const range = document.createRange();
-    range.selectNodeContents(cell);
-    let current = 0;
-    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, null);
-    let node = walker.nextNode();
-    while (node) {
-      const next = current + node.nodeValue.length;
-      if (offset <= next) {
-        range.setStart(node, offset - current);
-        range.collapse(true);
-        break;
-      }
-      current = next;
-      node = walker.nextNode();
-    }
-    if (!node) {
-      range.setStart(cell, cell.childNodes.length);
-      range.collapse(true);
-    }
-    const selection = window.getSelection();
-    if (!selection) return;
-    selection.removeAllRanges();
-    selection.addRange(range);
-  };
-
   const sanitizeCellPreserveCaret = (cell) => {
     if (!cell || cell.dataset.readonly === "true") return;
     const raw = cell.textContent;
-    const offset = getCaretOffset(cell);
-    const sanitized = cell.dataset.decimal === "true"
-      ? sanitizeDecimalText(raw)
-      : sanitizeIntegerText(raw);
-    if (sanitized !== raw) {
-      cell.textContent = sanitized;
-      if (offset !== null) {
-        setCaretOffset(cell, Math.min(offset, sanitized.length));
-      }
-    }
+    let sanitized = cell.dataset.decimal === "true"
+      ? raw.replace(/[^\d.]/g, "")
+      : raw.replace(/[^\d-]/g, ""); // 允許輸入減號
+    if (sanitized !== raw) cell.textContent = sanitized;
   };
 
   rows.forEach((row) => {
@@ -483,87 +360,49 @@
       });
     }
     row.querySelectorAll(".salary-cell[data-field]").forEach((cell) => {
-      if (cell.dataset.field === "total_salary") return;
-      sanitizeCellPreserveCaret(cell);
+      // 初始化檢查負數
       updateNegativeState(cell);
-      syncHiddenInput(cell);
+      
+      if (cell.dataset.field === "total_salary") return;
       cell.addEventListener("input", () => {
         sanitizeCellPreserveCaret(cell);
         updateNegativeState(cell);
         syncHiddenInput(cell);
         updateTotal(row);
       });
-      cell.addEventListener("blur", () => {
-        if (!cell.textContent.trim()) {
-          cell.textContent = "0";
-          updateNegativeState(cell);
-          syncHiddenInput(cell);
-          updateTotal(row);
-        }
-      });
     });
   });
-  updateOverallTotal();
 
   function syncHiddenInput(cell) {
     const wrapper = cell.closest(".salary-cell-wrap");
-    if (!wrapper) return;
-    const hidden = wrapper.querySelector('input[type="hidden"]');
-    if (hidden) {
-      hidden.value = cell.textContent.trim() || "0";
-    }
+    const hidden = wrapper?.querySelector('input[type="hidden"]');
+    if (hidden) hidden.value = cell.textContent.trim() || "0";
   }
 
   function applyPayType(row, payType) {
     row.dataset.payType = payType;
     const basePayCell = row.querySelector('.salary-cell[data-field="base_pay"]');
     if (!basePayCell) return;
-    if (payType === "hourly") {
-      basePayCell.dataset.readonly = "true";
-      basePayCell.contentEditable = "false";
-    } else {
-      basePayCell.dataset.readonly = "false";
-      basePayCell.contentEditable = "true";
-    }
+    const isHourly = payType === "hourly";
+    basePayCell.dataset.readonly = isHourly ? "true" : "false";
+    basePayCell.contentEditable = !isHourly;
+    basePayCell.style.backgroundColor = isHourly ? "#e9ecef" : "";
     moveRowToSection(row, payType);
   }
 
   function updatePayType(profileId, payType) {
     if (!payTypeUrl || !csrfToken) return;
-    const yearMonth = yearMonthInput ? yearMonthInput.value : "";
-    const body = new URLSearchParams();
-    body.append("profile_id", profileId);
-    body.append("pay_type", payType);
-    if (yearMonth) {
-      body.append("year_month", yearMonth);
-    }
+    const body = new URLSearchParams({ profile_id: profileId, pay_type: payType, year_month: yearMonthInput?.value || "" });
     fetch(payTypeUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": csrfToken,
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": csrfToken },
       body: body.toString(),
-    }).catch(() => {});
+    });
   }
 
   function moveRowToSection(row, payType) {
-    const targetSection = payType === "salaried" ? "salaried" : "hourly";
-    const targetBlock = document.querySelector(`.salary-section-block[data-section="${targetSection}"]`);
-    if (!targetBlock) return;
-    const targetBody = targetBlock.querySelector("tbody");
-    if (!targetBody) return;
-    const currentBody = row.closest("tbody");
-    if (currentBody === targetBody) return;
-    targetBody.appendChild(row);
-    targetBlock.style.display = "";
-    const sourceBlock = currentBody ? currentBody.closest(".salary-section-block") : null;
-    if (sourceBlock) {
-      const hasRows = sourceBlock.querySelector("tbody tr[data-profile-id]");
-      if (!hasRows) {
-        sourceBlock.style.display = "";
-      }
-    }
+    const sectionHeader = document.querySelector(`.salary-section-row[data-section-type="${payType}"]`);
+    if (sectionHeader) sectionHeader.parentNode.insertBefore(row, sectionHeader.nextSibling);
   }
 </script>
 {% endblock %}

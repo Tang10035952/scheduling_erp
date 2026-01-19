@@ -308,30 +308,14 @@ def scheduling_timeline(request):
     if not is_manager_user:
         show_empty_rows = False
 
-    hide_empty_rows = not show_empty_rows
+    # 為了解決前端篩選持久化問題，管理者模式下後端不應過濾未排班員工，交由前端 JS 處理
+    hide_empty_rows = (not show_empty_rows) and (not is_manager_user)
 
     def build_display_name(profile):
         return profile.display_name()
 
     stores = Store.objects.all()
-    store_ids = request.GET.getlist("store")
-    store_query = None
-    selected_store_ids = []
-    selected_unassigned = False
-    if store_ids:
-        unassigned = "unassigned" in store_ids
-        selected_unassigned = unassigned
-        numeric_ids = []
-        for value in store_ids:
-            if value.isdigit():
-                numeric_ids.append(int(value))
-        selected_store_ids = numeric_ids
-        if numeric_ids and unassigned:
-            store_query = Q(store_id__in=numeric_ids) | Q(store__isnull=True)
-        elif numeric_ids:
-            store_query = Q(store_id__in=numeric_ids)
-        elif unassigned:
-            store_query = Q(store__isnull=True)
+    # selected_store_ids 與 store_query 已在上方處理過
     shift_create_url = reverse("scheduling:shift_create")
     shift_update_url = reverse("scheduling:shift_update")
     shift_delete_url = reverse("scheduling:shift_delete")

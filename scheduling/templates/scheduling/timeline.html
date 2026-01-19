@@ -4,698 +4,740 @@
 
 {% block extra_css %}
 <style>
-.container {
-    max-width: 1400px;
-}
-
-@media (min-width: 1600px) {
     .container {
-        max-width: 92vw;
+        max-width: 1400px;
     }
-}
 
-.timeline-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-    overflow: hidden;
-}
+    @media (min-width: 1600px) {
+        .container {
+            max-width: 92vw;
+        }
+    }
+
+    .timeline-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+    }
 
-.timeline-header,
-.timeline-row {
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    align-items: stretch;
-}
-
-.timeline-header.timeline-with-hours,
-.timeline-row.timeline-with-hours {
-    grid-template-columns: 180px 90px 1fr;
-}
-
-.timeline-header {
-    background: #f8fafc;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.timeline-name {
-    padding: 12px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: #0f172a;
-    border-right: 1px solid #e5e7eb;
-    text-align: center;
-}
-
-.timeline-header .timeline-name {
-    position: sticky;
-    left: 0;
-    z-index: 9;
-    background: #f8fafc;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.timeline-row .timeline-name {
-    position: sticky;
-    left: 0;
-    z-index: 5;
-    background: #fff;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.timeline-header .timeline-hours {
-    position: sticky;
-    left: 180px;
-    z-index: 8;
-    background: #f8fafc;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.timeline-row .timeline-hours {
-    position: sticky;
-    left: 180px;
-    z-index: 4;
-    background: #fff;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.timeline-hours {
-    padding: 12px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: #0f172a;
-    border-right: 1px solid #e5e7eb;
-    text-align: center;
-}
-
-.timeline-header .timeline-hours {
-    background: #f8fafc;
-}
-
-.blink-warning {
-    animation: blink-warning 1.2s ease-in-out infinite;
-}
-
-.employee-order-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.employee-order-controls {
-    display: none;
-    align-items: center;
-    gap: 6px;
-}
-
-.employee-order-controls.is-active {
-    display: inline-flex;
-}
-
-.employee-order-status {
-    min-height: 1rem;
-    color: #6c757d;
-}
-
-.employee-order-status.is-error {
-    color: #dc3545;
-}
-
-.employee-order-mode .shift-cell,
-.employee-order-mode .shift-block,
-.employee-order-mode .shift-line,
-.employee-order-mode .timeline-grid {
-    cursor: not-allowed;
-}
-
-.timeline-row.employee-order-selected,
-.week-table tbody tr.employee-order-selected,
-.month-table tbody tr.employee-order-selected,
-.timeline-employee-column.employee-order-selected,
-.timeline-employee-header.employee-order-selected {
-    position: relative;
-    z-index: 6;
-}
-
-.timeline-row.employee-order-selected .timeline-name,
-.week-table tbody tr.employee-order-selected .name-cell,
-.month-table tbody tr.employee-order-selected .name-cell,
-.timeline-employee-header.employee-order-selected {
-    font-weight: 700;
-    color: #dc2626;
-}
-
-@keyframes blink-warning {
-    0% { opacity: 1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 1; }
-}
-
-.timeline-grid-header {
-    display: grid;
-    grid-template-columns: repeat(var(--timeline-columns, 16), 1fr);
-    font-size: 0.95rem;
-    color: #475569;
-    position: relative;
-}
-
-.timeline-hour {
-    padding: 10px 0;
-    text-align: center;
-    border-left: 1px solid #e5e7eb;
-    font-size: 0.95rem;
-}
-
-.timeline-row {
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.timeline-grid {
-    position: relative;
-    min-height: 46px;
-    background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
-    background-size: calc(100% / var(--timeline-columns, 16)) 100%;
-}
-
-.timeline-grid.timeline-vertical {
-    min-height: auto;
-    height: var(--timeline-total-height, 960px);
-    background-image: linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
-    background-size: 100% calc(100% / var(--timeline-row-count, 8));
-}
-
-.timeline-grid::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 4px;
-    pointer-events: none;
-}
-
-.timeline-card:not(.timeline-readonly) .timeline-grid {
-    cursor: pointer;
-}
-
-.timeline-card:not(.timeline-readonly) .shift-cell {
-    cursor: pointer;
-}
-
-.day-timeline-scroll {
-    overflow: auto;
-    max-height: 70vh;
-}
-
-.timeline-vertical {
-    --timeline-minute-height: 1px;
-    --timeline-total-height: calc(var(--timeline-total-minutes, 960) * var(--timeline-minute-height));
-    display: grid;
-    grid-template-columns: 80px repeat(var(--timeline-employee-columns, 1), minmax(140px, 1fr));
-    grid-template-rows: auto 1fr;
-    align-items: stretch;
-    min-width: 720px;
-}
-
-.timeline-vertical-header {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 80px repeat(var(--timeline-employee-columns, 1), minmax(140px, 1fr));
-    background: #f8fafc;
-    border-bottom: 1px solid #e5e7eb;
-    position: sticky;
-    top: 0;
-    z-index: 8;
-}
-
-.timeline-time-header,
-.timeline-employee-header {
-    padding: 10px 8px;
-    text-align: center;
-    font-weight: 600;
-    color: #0f172a;
-    border-right: 1px solid #e5e7eb;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    min-width: 0;
-}
-
-.timeline-employee-hours {
-    font-size: 0.85rem;
-    color: #64748b;
-    font-weight: 500;
-}
-
-.timeline-time-column {
-    grid-row: 2;
-    position: relative;
-    height: var(--timeline-total-height, 960px);
-    border-right: 1px solid #e5e7eb;
-    background: #fff;
-}
-
-.timeline-time-label {
-    position: absolute;
-    left: 8px;
-    transform: translateY(-50%);
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #475569;
-}
-
-.timeline-time-label:first-child {
-    transform: translateY(0);
-}
-
-.timeline-time-label.timeline-time-end {
-    font-weight: 600;
-}
-
-.timeline-employee-column {
-    grid-row: 2;
-    position: relative;
-    border-right: 1px solid #e5e7eb;
-    background: #fff;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.timeline-employee-grid {
-    position: relative;
-    height: var(--timeline-total-height, 960px);
-    overflow: hidden;
-    width: 100%;
-    min-width: 0;
-}
-
-.timeline-vertical .shift-block {
-    left: 6px;
-    right: 6px;
-    width: auto;
-    height: auto;
-    padding: 4px 6px;
-    font-size: 0.9rem;
-    max-width: calc(100% - 12px);
-    box-sizing: border-box;
-    white-space: normal;
-    word-break: break-word;
-}
-
-.timeline-vertical .row-empty {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-}
-
-.cell-frame {
-    position: absolute;
-    inset: 0;
-    border-radius: 4px;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.shift-block {
-    position: absolute;
-    top: 8px;
-    height: 30px;
-    background: var(--shift-bg, #1e88e5);
-    color: var(--shift-fg, #fff);
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 0.95rem;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-    cursor: pointer;
-    z-index: 2;
-}
-
-.row-empty {
-    color: #94a3b8;
-    font-size: 0.95rem;
-    padding: 12px 16px;
-    position: relative;
-    z-index: 2;
-}
-
-.shift-cell {
-    height: 64px;
-    position: relative;
-    overflow: visible;
-}
-
-.shift-cell.shift-cell-expand {
-    height: auto;
-}
-
-.week-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-}
-
-.week-table th,
-.week-table td {
-    border: 1px solid #e5e7eb;
-    padding: 10px 12px;
-    vertical-align: middle;
-    min-width: 140px;
-    text-align: center;
-}
-
-.week-table th {
-    background: #f8fafc;
-    color: #0f172a;
-    position: sticky;
-    top: 0;
-    z-index: 8;
-}
-
-.week-table .name-cell {
-    position: sticky;
-    left: 0;
-    background: #f8fafc;
-    font-weight: 600;
-    min-width: 90px;
-    z-index: 2;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.week-table .hours-cell {
-    position: sticky;
-    left: 90px;
-    background: #f8fafc;
-    min-width: 50px;
-    z-index: 2;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.week-table thead .name-cell {
-    top: 0;
-    z-index: 10; /* keep header label above body cells */
-}
-
-.week-table thead .hours-cell {
-    top: 0;
-    z-index: 10;
-}
-
-.week-table tbody .name-cell {
-    z-index: 3; /* above body cells but below header */
-}
-
-.week-table tbody .hours-cell {
-    z-index: 3;
-}
-.name-link {
-    color: inherit;
-    text-decoration: none;
-}
-.name-link:hover {
-    text-decoration: underline;
-}
-.manager-row .name-cell {
-    background-color: #d1fae5;
-}
-
-.manager-row .timeline-name {
-    background-color: #d1fae5;
-}
-
-.timeline-employee-header.manager-row,
-.timeline-employee-column.manager-row {
-    background-color: #d1fae5;
-}
-
-.shift-line {
-    display: block;
-    padding: 2px 6px;
-    margin-bottom: 4px;
-    background: var(--shift-bg, #1e88e5);
-    color: var(--shift-fg, #fff);
-    border-radius: 6px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-    position: relative;
-    z-index: 2;
-}
-
-.shift-line:hover,
-.shift-block:hover {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--shift-bg, #1e88e5) 70%, #000000);
-}
-
-.timeline-grid.create-target::after {
-    box-shadow: 0 0 0 4px #94a3b8;
-}
-
-.timeline-card:not(.timeline-readonly) .timeline-grid:hover:not(.no-grid-outline)::after {
-    box-shadow: 0 0 0 3px #94a3b8;
-}
-
-.shift-cell.create-target .cell-frame {
-    box-shadow: 0 0 0 4px #94a3b8;
-}
-
-.timeline-card:not(.timeline-readonly) .shift-cell:hover .cell-frame {
-    box-shadow: 0 0 0 3px #94a3b8;
-}
-
-.shift-cell.no-cell-outline .cell-frame,
-.shift-cell.no-cell-outline:hover .cell-frame {
-    box-shadow: none !important;
-}
-.shift-line:last-child {
-    margin-bottom: 0;
-}
-
-
-.timeline-readonly .shift-line,
-.timeline-readonly .shift-block,
-.timeline-readonly .shift-cell {
-    cursor: default;
-}
-
-
-.week-scroll {
-    overflow: auto;
-    max-height: 70vh;
-}
-
-.month-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-}
-
-.month-table th,
-.month-table td {
-    border: 1px solid #e5e7eb;
-    padding: 10px 12px;
-    vertical-align: middle;
-    min-width: 80px;
-    text-align: center;
-}
-
-.month-table th {
-    background: #f8fafc;
-    color: #0f172a;
-    position: sticky;
-    top: 0;
-    z-index: 3;
-}
-
-.month-table .name-cell {
-    position: sticky;
-    left: 0;
-    background: #f8fafc;
-    font-weight: 600;
-    min-width: 90px;
-    z-index: 2;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.month-table .hours-cell {
-    position: sticky;
-    left: 90px;
-    background: #f8fafc;
-    min-width: 50px;
-    z-index: 2;
-    box-shadow: 2px 0 0 #e5e7eb;
-}
-
-.month-table thead .name-cell {
-    top: 0;
-    z-index: 6;
-}
-
-.month-table thead .hours-cell {
-    top: 0;
-    z-index: 6;
-}
-
-.month-table tbody .name-cell {
-    z-index: 3;
-}
-
-.month-table tbody .hours-cell {
-    z-index: 3;
-}
-.month-table .manager-row .name-cell {
-    background-color: #d1fae5;
-}
-
-.month-scroll {
-    overflow: auto;
-    max-height: 70vh;
-}
-
-.holiday-badge {
-    display: inline-block;
-    margin-left: 6px;
-    padding: 2px 6px;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #8a1b1b;
-    background: #ffe1e1;
-    line-height: 1;
-}
-
-.date-link {
-    color: inherit;
-    text-decoration: none;
-}
-
-.date-link:hover,
-.date-link:focus {
-    text-decoration: underline;
-}
-
-.week-table th.holiday-general-week,
-.week-table td.holiday-general-week {
-    background-color: #fff7d6 !important;
-}
-
-.week-table th.holiday-national-week,
-.week-table td.holiday-national-week {
-    background-color: #ffe3e3 !important;
-}
-
-.month-table th.holiday-general-month,
-.month-table td.holiday-general-month {
-    background-color: #fff9e6 !important;
-}
-
-.month-table th.holiday-national-month,
-.month-table td.holiday-national-month {
-    background-color: #fff0f0 !important;
-}
-
-.today-highlight {
-    background-color: #e6f7e6 !important;
-}
-
-.my-row-highlight .name-cell {
-    background-color: #c3f0c3;
-    font-weight: 700;
-}
-
-.my-row-highlight .timeline-name {
-    background-color: #c3f0c3;
-    font-weight: 700;
-}
-
-.timeline-employee-header.my-row-highlight,
-.timeline-employee-column.my-row-highlight {
-    background-color: #c3f0c3;
-    font-weight: 700;
-}
-
-.timeline-end-label {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.85rem;
-    color: #64748b;
-    pointer-events: none;
-}
-
-@media (max-width: 992px) {
     .timeline-header,
     .timeline-row {
-        grid-template-columns: 120px 1fr;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        align-items: stretch;
     }
+
     .timeline-header.timeline-with-hours,
     .timeline-row.timeline-with-hours {
-        grid-template-columns: 120px 70px 1fr;
+        grid-template-columns: 180px 90px 1fr;
     }
-    .timeline-hour {
-        font-size: 0.85rem;
-    }
-    .timeline-header .timeline-hours,
-    .timeline-row .timeline-hours {
-        left: 120px;
-    }
-}
 
-@media (max-width: 720px) {
-    .timeline-card {
-        overflow-x: auto;
+    .timeline-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
     }
-    .timeline-header,
+
+    .timeline-name {
+        padding: 12px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #0f172a;
+        border-right: 1px solid #e5e7eb;
+        text-align: center;
+    }
+
+    .timeline-header .timeline-name {
+        position: sticky;
+        left: 0;
+        z-index: 9;
+        background: #f8fafc;
+        box-shadow: 2px 0 0 #e5e7eb;
+    }
+
+    .timeline-row .timeline-name {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        background: #fff;
+        box-shadow: 2px 0 0 #e5e7eb;
+    }
+
+    .timeline-header .timeline-hours {
+        position: sticky;
+        left: 180px;
+        z-index: 8;
+        background: #f8fafc;
+        box-shadow: 2px 0 0 #e5e7eb;
+    }
+
+    .timeline-row .timeline-hours {
+        position: sticky;
+        left: 180px;
+        z-index: 4;
+        background: #fff;
+        box-shadow: 2px 0 0 #e5e7eb;
+    }
+
+    .timeline-hours {
+        padding: 12px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #0f172a;
+        border-right: 1px solid #e5e7eb;
+        text-align: center;
+    }
+
+    .timeline-header .timeline-hours {
+        background: #f8fafc;
+    }
+
+    .blink-warning {
+        animation: blink-warning 1.2s ease-in-out infinite;
+    }
+
+    .employee-order-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .employee-order-controls {
+        display: none;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .employee-order-controls.is-active {
+        display: inline-flex;
+    }
+
+    .employee-order-status {
+        min-height: 1rem;
+        color: #6c757d;
+    }
+
+    .employee-order-status.is-error {
+        color: #dc3545;
+    }
+
+    .employee-order-mode .shift-cell,
+    .employee-order-mode .shift-block,
+    .employee-order-mode .shift-line,
+    .employee-order-mode .timeline-grid {
+        cursor: not-allowed;
+    }
+
+    .timeline-row.employee-order-selected,
+    .week-table tbody tr.employee-order-selected,
+    .month-table tbody tr.employee-order-selected,
+    .timeline-employee-column.employee-order-selected,
+    .timeline-employee-header.employee-order-selected {
+        position: relative;
+        z-index: 6;
+    }
+
+    .timeline-row.employee-order-selected .timeline-name,
+    .week-table tbody tr.employee-order-selected .name-cell,
+    .month-table tbody tr.employee-order-selected .name-cell,
+    .timeline-employee-header.employee-order-selected {
+        font-weight: 700;
+        color: #dc2626;
+    }
+
+    @keyframes blink-warning {
+        0% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.3;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    .timeline-grid-header {
+        display: grid;
+        grid-template-columns: repeat(var(--timeline-columns, 16), 1fr);
+        font-size: 0.95rem;
+        color: #475569;
+        position: relative;
+    }
+
+    .timeline-hour {
+        padding: 10px 0;
+        text-align: center;
+        border-left: 1px solid #e5e7eb;
+        font-size: 0.95rem;
+    }
+
     .timeline-row {
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .timeline-grid {
+        position: relative;
+        min-height: 46px;
+        background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
+        background-size: calc(100% / var(--timeline-columns, 16)) 100%;
+    }
+
+    .timeline-grid.timeline-vertical {
+        min-height: auto;
+        height: var(--timeline-total-height, 960px);
+        background-image: linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+        background-size: 100% calc(100% / var(--timeline-row-count, 8));
+    }
+
+    .timeline-grid::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+
+    .timeline-card:not(.timeline-readonly) .timeline-grid {
+        cursor: pointer;
+    }
+
+    .timeline-card:not(.timeline-readonly) .shift-cell {
+        cursor: pointer;
+    }
+
+    .day-timeline-scroll {
+        overflow: auto;
+        max-height: 70vh;
+    }
+
+    .timeline-vertical {
+        --timeline-minute-height: 1px;
+        --timeline-total-height: calc(var(--timeline-total-minutes, 960) * var(--timeline-minute-height));
+        display: grid;
+        grid-template-columns: 80px repeat(var(--timeline-employee-columns, 1), minmax(140px, 1fr));
+        grid-template-rows: auto 1fr;
+        align-items: stretch;
         min-width: 720px;
     }
-    .timeline-header.timeline-with-hours,
-    .timeline-row.timeline-with-hours {
-        min-width: 820px;
-    }
-}
 
-@media (max-width: 576px) {
-    .timeline-name {
+    .timeline-vertical-header {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 80px repeat(var(--timeline-employee-columns, 1), minmax(140px, 1fr));
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 8;
+    }
+
+    .timeline-time-header,
+    .timeline-employee-header {
         padding: 10px 8px;
-        font-size: 0.85rem;
+        text-align: center;
+        font-weight: 600;
+        color: #0f172a;
+        border-right: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
     }
-    .timeline-grid-header {
+
+    .timeline-employee-hours {
         font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
     }
-    .week-table,
-    .month-table,
+
+    .timeline-time-column {
+        grid-row: 2;
+        position: relative;
+        height: var(--timeline-total-height, 960px);
+        border-right: 1px solid #e5e7eb;
+        background: #fff;
+    }
+
+    .timeline-time-label {
+        position: absolute;
+        left: 8px;
+        transform: translateY(-50%);
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #475569;
+    }
+
+    .timeline-time-label:first-child {
+        transform: translateY(0);
+    }
+
+    .timeline-time-label.timeline-time-end {
+        font-weight: 600;
+    }
+
+    .timeline-employee-column {
+        grid-row: 2;
+        position: relative;
+        border-right: 1px solid #e5e7eb;
+        background: #fff;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .timeline-employee-grid {
+        position: relative;
+        height: var(--timeline-total-height, 960px);
+        overflow: hidden;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .timeline-vertical .shift-block {
+        left: 6px;
+        right: 6px;
+        width: auto;
+        height: auto;
+        padding: 4px 6px;
+        font-size: 0.9rem;
+        max-width: calc(100% - 12px);
+        box-sizing: border-box;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .timeline-vertical .row-empty {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+    }
+
+    .cell-frame {
+        position: absolute;
+        inset: 0;
+        border-radius: 4px;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    .shift-block {
+        position: absolute;
+        top: 8px;
+        height: 30px;
+        background: var(--shift-bg, #1e88e5);
+        color: var(--shift-fg, #fff);
+        border-radius: 8px;
+        padding: 4px 8px;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        cursor: pointer;
+        z-index: 2;
+    }
+
+    .row-empty {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        padding: 12px 16px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .shift-cell {
+        height: 64px;
+        position: relative;
+        overflow: visible;
+    }
+
+    .shift-cell.shift-cell-expand {
+        height: auto;
+    }
+
+    .week-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.95rem;
+    }
+
     .week-table th,
-    .week-table td,
+    .week-table td {
+        border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        vertical-align: middle;
+        min-width: 140px;
+        text-align: center;
+        background-clip: padding-box;
+    }
+
+    .week-table th {
+        background: #f8fafc;
+        color: #0f172a;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 0;
+        box-shadow: 0 1px 0 #e5e7eb;
+    }
+
+    .week-table .name-cell {
+        position: sticky;
+        left: 0;
+        background: #f8fafc;
+        font-weight: 600;
+        min-width: 90px;
+        z-index: 5;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    .week-table .hours-cell {
+        position: sticky;
+        left: 90px;
+        background: #f8fafc;
+        min-width: 50px;
+        z-index: 5;
+        border-right: 0;
+        box-shadow: 2px 0 0 #e5e7eb;
+    }
+
+    .week-table thead .name-cell {
+        z-index: 20;
+        top: 0;
+        box-shadow: 0 1px 0 #e5e7eb;
+    }
+
+    .week-table thead .hours-cell {
+        z-index: 20;
+        top: 0;
+        box-shadow: 2px 0 0 #e5e7eb, 0 1px 0 #e5e7eb;
+    }
+
+    .week-table tbody .name-cell {
+        background: #fff;
+        z-index: 5;
+    }
+
+    .week-table tbody .hours-cell {
+        background: #fff;
+        z-index: 5;
+    }
+
+    .name-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .name-link:hover {
+        text-decoration: underline;
+    }
+
+    .manager-row .name-cell {
+        background-color: #d1fae5 !important;
+    }
+
+    .manager-row .timeline-name {
+        background-color: #d1fae5 !important;
+    }
+
+    .timeline-employee-header.manager-row,
+    .timeline-employee-column.manager-row {
+        background-color: #d1fae5 !important;
+    }
+
+    .shift-line {
+        display: block;
+        padding: 2px 6px;
+        margin-bottom: 4px;
+        background: var(--shift-bg, #1e88e5);
+        color: var(--shift-fg, #fff);
+        border-radius: 6px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        position: relative;
+        z-index: 2;
+    }
+
+    .shift-line:hover,
+    .shift-block:hover {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--shift-bg, #1e88e5) 70%, #000000);
+    }
+
+    .timeline-grid.create-target::after {
+        box-shadow: 0 0 0 4px #94a3b8;
+    }
+
+    .timeline-card:not(.timeline-readonly) .timeline-grid:hover:not(.no-grid-outline)::after {
+        box-shadow: 0 0 0 3px #94a3b8;
+    }
+
+    .shift-cell.create-target .cell-frame {
+        box-shadow: 0 0 0 4px #94a3b8;
+    }
+
+    .timeline-card:not(.timeline-readonly) .shift-cell:hover .cell-frame {
+        box-shadow: 0 0 0 3px #94a3b8;
+    }
+
+    .shift-cell.no-cell-outline .cell-frame,
+    .shift-cell.no-cell-outline:hover .cell-frame {
+        box-shadow: none !important;
+    }
+
+    .shift-line:last-child {
+        margin-bottom: 0;
+    }
+
+
+    .timeline-readonly .shift-line,
+    .timeline-readonly .shift-block,
+    .timeline-readonly .shift-cell {
+        cursor: default;
+    }
+
+
+    .week-scroll {
+        overflow: auto;
+        max-height: 70vh;
+    }
+
+    .month-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.95rem;
+    }
+
     .month-table th,
     .month-table td {
-        font-size: 0.85rem;
+        border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+        padding: 10px 12px;
+        vertical-align: middle;
+        min-width: 80px;
+        text-align: center;
+        background-clip: padding-box;
     }
-    .week-scroll,
+
+    .month-table th {
+        background: #f8fafc;
+        color: #0f172a;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 0;
+        box-shadow: 0 1px 0 #e5e7eb;
+    }
+
+    .month-table .name-cell {
+        position: sticky;
+        left: 0;
+        background: #f8fafc;
+        font-weight: 600;
+        min-width: 90px;
+        z-index: 5;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    .month-table .hours-cell {
+        position: sticky;
+        left: 90px;
+        background: #f8fafc;
+        min-width: 50px;
+        z-index: 5;
+        border-right: 0;
+        box-shadow: 2px 0 0 #e5e7eb;
+    }
+
+    .month-table thead .name-cell {
+        z-index: 20;
+        top: 0;
+        box-shadow: 0 1px 0 #e5e7eb;
+    }
+
+    .month-table thead .hours-cell {
+        z-index: 20;
+        top: 0;
+        box-shadow: 2px 0 0 #e5e7eb, 0 1px 0 #e5e7eb;
+    }
+
+    .month-table tbody .name-cell {
+        background: #fff;
+        z-index: 5;
+    }
+
+    .month-table tbody .hours-cell {
+        background: #fff;
+        z-index: 5;
+    }
+
+    .month-table .manager-row .name-cell {
+        background-color: #d1fae5;
+    }
+
     .month-scroll {
-        max-height: 65vh;
+        overflow: auto;
+        max-height: 70vh;
     }
-    .shift-line {
+
+    .holiday-badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #8a1b1b;
+        background: #ffe1e1;
+        line-height: 1;
+    }
+
+    .date-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .date-link:hover,
+    .date-link:focus {
+        text-decoration: underline;
+    }
+
+    .week-table th.holiday-general-week,
+    .week-table td.holiday-general-week {
+        background-color: #fff7d6 !important;
+    }
+
+    .week-table th.holiday-national-week,
+    .week-table td.holiday-national-week {
+        background-color: #ffe3e3 !important;
+    }
+
+    .month-table th.holiday-general-month,
+    .month-table td.holiday-general-month {
+        background-color: #fff9e6 !important;
+    }
+
+    .month-table th.holiday-national-month,
+    .month-table td.holiday-national-month {
+        background-color: #fff0f0 !important;
+    }
+
+    .today-highlight {
+        background-color: #e6f7e6 !important;
+    }
+
+    .my-row-highlight .name-cell {
+        background-color: #c3f0c3 !important;
+        font-weight: 700;
+    }
+
+    .my-row-highlight .timeline-name {
+        background-color: #c3f0c3 !important;
+        font-weight: 700;
+    }
+
+    .timeline-employee-header.my-row-highlight,
+    .timeline-employee-column.my-row-highlight {
+        background-color: #c3f0c3 !important;
+        font-weight: 700;
+    }
+
+    .timeline-end-label {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
         font-size: 0.85rem;
+        color: #64748b;
+        pointer-events: none;
     }
-    .shift-cell {
-        height: 56px;
+
+    @media (max-width: 992px) {
+
+        .timeline-header,
+        .timeline-row {
+            grid-template-columns: 120px 1fr;
+        }
+
+        .timeline-header.timeline-with-hours,
+        .timeline-row.timeline-with-hours {
+            grid-template-columns: 120px 70px 1fr;
+        }
+
+        .timeline-hour {
+            font-size: 0.85rem;
+        }
+
+        .timeline-header .timeline-hours,
+        .timeline-row .timeline-hours {
+            left: 120px;
+        }
     }
-}
+
+    @media (max-width: 720px) {
+
+        .timeline-header,
+        .timeline-row {
+            min-width: 720px;
+        }
+
+        .timeline-header.timeline-with-hours,
+        .timeline-row.timeline-with-hours {
+            min-width: 820px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .timeline-name {
+            padding: 10px 8px;
+            font-size: 0.85rem;
+        }
+
+        .timeline-grid-header {
+            font-size: 0.85rem;
+        }
+
+        .week-table,
+        .month-table,
+        .week-table th,
+        .week-table td,
+        .month-table th,
+        .month-table td {
+            font-size: 0.85rem;
+        }
+
+        .week-scroll,
+        .month-scroll {
+            max-height: 65vh;
+        }
+
+        .shift-line {
+            font-size: 0.85rem;
+        }
+
+        .shift-cell {
+            height: 56px;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+<div
+    class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <h2 class="mb-1">{{ page_title|default:"員工班表" }}</h2>
 </div>
 {% if show_profile_warning %}
@@ -717,48 +759,63 @@
     <input type="hidden" name="view" value="{{ view }}">
     <input type="hidden" name="day_layout" value="{{ day_layout }}">
     {% if view == 'month' %}
-        <div class="col-auto d-flex align-items-end">
-            <div class="btn-group" role="group" aria-label="month nav">
-                <button class="btn btn-outline-secondary" type="button" id="prevBtn">‹</button>
-                <button class="btn btn-outline-secondary" type="button" id="todayBtn">本月</button>
-                <button class="btn btn-outline-secondary" type="button" id="nextBtn">›</button>
-            </div>
+    <div class="col-auto d-flex align-items-end">
+        <div class="btn-group" role="group" aria-label="month nav">
+            <button class="btn btn-outline-secondary" type="button"
+                id="prevBtn">‹</button>
+            <button class="btn btn-outline-secondary" type="button"
+                id="todayBtn">本月</button>
+            <button class="btn btn-outline-secondary" type="button"
+                id="nextBtn">›</button>
         </div>
-        <div class="col-auto">
-            <label for="monthInput" class="form-label visually-hidden">月份</label>
-            <input id="monthInput" class="form-control" type="month" name="month" value="{{ month_value }}">
-        </div>
+    </div>
+    <div class="col-auto">
+        <label for="monthInput" class="form-label visually-hidden">月份</label>
+        <input id="monthInput" class="form-control" type="month" name="month"
+            value="{{ month_value }}">
+    </div>
     {% else %}
-        <div class="col-auto d-flex align-items-end">
-            <div class="btn-group" role="group" aria-label="date nav">
-                <button class="btn btn-outline-secondary" type="button" id="prevBtn">‹</button>
-                <button class="btn btn-outline-secondary" type="button" id="todayBtn">{% if view == 'week' %}本週{% else %}本日{% endif %}</button>
-                <button class="btn btn-outline-secondary" type="button" id="nextBtn">›</button>
-            </div>
+    <div class="col-auto d-flex align-items-end">
+        <div class="btn-group" role="group" aria-label="date nav">
+            <button class="btn btn-outline-secondary" type="button"
+                id="prevBtn">‹</button>
+            <button class="btn btn-outline-secondary" type="button"
+                id="todayBtn">{% if view == 'week' %}本週{% else %}本日{% endif %}</button>
+            <button class="btn btn-outline-secondary" type="button"
+                id="nextBtn">›</button>
         </div>
-        <div class="col-auto">
-            <label for="dateInput" class="form-label visually-hidden">日期</label>
-            <input id="dateInput" class="form-control" type="date" name="date" value="{{ date|date:'Y-m-d' }}">
-        </div>
+    </div>
+    <div class="col-auto">
+        <label for="dateInput" class="form-label visually-hidden">日期</label>
+        <input id="dateInput" class="form-control" type="date" name="date"
+            value="{{ date|date:'Y-m-d' }}">
+    </div>
     {% endif %}
     {% if stores and not hide_store_filter %}
     <div class="col-auto">
         <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <button class="btn btn-outline-secondary dropdown-toggle"
+                type="button" data-bs-toggle="dropdown"
+                data-bs-auto-close="outside" aria-expanded="false">
                 班表篩選
             </button>
             <div class="dropdown-menu p-3" style="min-width: 220px;">
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="storeSelectAll">
-                    <label class="form-check-label" for="storeSelectAll">全選</label>
+                    <input class="form-check-input" type="checkbox"
+                        id="storeSelectAll">
+                    <label class="form-check-label"
+                        for="storeSelectAll">全選</label>
                 </div>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="store" id="storeUnassigned" value="unassigned" {% if selected_unassigned %}checked{% endif %}>
-                    <label class="form-check-label" for="storeUnassigned">未排定</label>
+                    <input class="form-check-input" type="checkbox" name="store"
+                        id="storeUnassigned" value="unassigned" {% if selected_unassigned %}checked{% endif %}>
+                    <label class="form-check-label"
+                        for="storeUnassigned">未排定</label>
                 </div>
                 {% for store in stores %}
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="store" id="store{{ store.id }}" value="{{ store.id }}" {% if store.id in selected_store_ids %}checked{% endif %}>
+                    <input class="form-check-input" type="checkbox" name="store"
+                        id="store{{ store.id }}" value="{{ store.id }}" {% if store.id in selected_store_ids %}checked{% endif %}>
                     <label class="form-check-label" for="store{{ store.id }}">{{ store.name }}</label>
                 </div>
                 {% endfor %}
@@ -769,21 +826,30 @@
     {% if employees and can_manage_store %}
     <div class="col-auto">
         <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <button class="btn btn-outline-secondary dropdown-toggle"
+                type="button" data-bs-toggle="dropdown"
+                data-bs-auto-close="outside" aria-expanded="false">
                 員工篩選
             </button>
-            <div class="dropdown-menu p-3" style="min-width: 220px; max-height: 320px; overflow: auto;">
+            <div class="dropdown-menu p-3"
+                style="min-width: 220px; max-height: 320px; overflow: auto;">
                 <div class="mb-2">
-                    <input class="form-control form-control-sm" type="text" id="employeeFilterInput" placeholder="搜尋員工">
+                    <input class="form-control form-control-sm" type="text"
+                        id="employeeFilterInput" placeholder="搜尋員工">
                 </div>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="employeeSelectAll">
-                    <label class="form-check-label" for="employeeSelectAll">全選</label>
+                    <input class="form-check-input" type="checkbox"
+                        id="employeeSelectAll">
+                    <label class="form-check-label"
+                        for="employeeSelectAll">全選</label>
                 </div>
                 {% for employee in employees %}
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="employee_filter" id="employee{{ employee.id }}" value="{{ employee.id }}" checked>
-                    <label class="form-check-label" for="employee{{ employee.id }}">{{ employee.display_name }}</label>
+                    <input class="form-check-input" type="checkbox"
+                        name="employee_filter" id="employee{{ employee.id }}"
+                        value="{{ employee.id }}" checked>
+                    <label class="form-check-label"
+                        for="employee{{ employee.id }}">{{ employee.display_name }}</label>
                 </div>
                 {% endfor %}
             </div>
@@ -794,11 +860,11 @@
     <div class="col-auto">
         <div class="btn-group" role="group" aria-label="view toggle">
             <a class="btn btn-outline-secondary {% if view == 'day' %}active{% endif %}"
-               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}">日</a>
+                href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}">日</a>
             <a class="btn btn-outline-secondary {% if view == 'week' %}active{% endif %}"
-               href="?view=week&date={{ date|date:'Y-m-d' }}{% if show_empty_rows %}&show_empty=1{% endif %}">週</a>
+                href="?view=week&date={{ date|date:'Y-m-d' }}{% if show_empty_rows %}&show_empty=1{% endif %}">週</a>
             <a class="btn btn-outline-secondary {% if view == 'month' %}active{% endif %}"
-               href="?view=month&month={{ month_value }}{% if show_empty_rows %}&show_empty=1{% endif %}">月</a>
+                href="?view=month&month={{ month_value }}{% if show_empty_rows %}&show_empty=1{% endif %}">月</a>
         </div>
     </div>
     {% endif %}
@@ -806,17 +872,19 @@
     <div class="col-auto">
         <div class="btn-group" role="group" aria-label="day layout toggle">
             <a class="btn btn-outline-secondary {% if day_layout != 'timeline' %}active{% endif %}"
-               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=table{% if show_empty_rows %}&show_empty=1{% endif %}">表格</a>
+                href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=table{% if show_empty_rows %}&show_empty=1{% endif %}">表格</a>
             <a class="btn btn-outline-secondary {% if day_layout == 'timeline' %}active{% endif %}"
-               href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=timeline{% if show_empty_rows %}&show_empty=1{% endif %}">時間軸</a>
+                href="?view=day&date={{ date|date:'Y-m-d' }}&day_layout=timeline{% if show_empty_rows %}&show_empty=1{% endif %}">時間軸</a>
         </div>
     </div>
     {% endif %}
     {% if can_manage_store %}
     <div class="col-auto">
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="show_empty" id="showEmptyRows" value="1" {% if show_empty_rows %}checked{% endif %}>
-            <label class="form-check-label" for="showEmptyRows">顯示未排班員工(在職)</label>
+            <input class="form-check-input" type="checkbox" name="show_empty"
+                id="showEmptyRows" value="1" {% if show_empty_rows %}checked{% endif %}>
+            <label class="form-check-label"
+                for="showEmptyRows">顯示未排班員工(在職)</label>
         </div>
     </div>
     {% endif %}
@@ -824,12 +892,17 @@
 
 {% if employees and can_manage_store %}
 <div class="employee-order-bar mb-3">
-    <button class="btn btn-outline-secondary" type="button" id="employeeOrderToggle">排序</button>
+    <button class="btn btn-outline-secondary" type="button"
+        id="employeeOrderToggle">排序</button>
     <div class="employee-order-controls" id="employeeOrderControls">
-        <button class="btn btn-outline-secondary btn-sm" type="button" id="employeeOrderUp" aria-label="往上移動">▲</button>
-        <button class="btn btn-outline-secondary btn-sm" type="button" id="employeeOrderDown" aria-label="往下移動">▼</button>
-        <button class="btn btn-primary btn-sm" type="button" id="employeeOrderSave">儲存排序</button>
-        <button class="btn btn-outline-secondary btn-sm" type="button" id="employeeOrderCancel">取消</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button"
+            id="employeeOrderUp" aria-label="往上移動">▲</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button"
+            id="employeeOrderDown" aria-label="往下移動">▼</button>
+        <button class="btn btn-primary btn-sm" type="button"
+            id="employeeOrderSave">儲存排序</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button"
+            id="employeeOrderCancel">取消</button>
     </div>
     <div class="form-text employee-order-status" id="employeeOrderStatus"></div>
 </div>
@@ -837,1595 +910,1648 @@
 
 <div class="timeline-card{% if read_only %} timeline-readonly{% endif %}">
     {% if view == 'day' %}
-        {% if day_layout == 'timeline' %}
-            <div class="day-timeline-scroll week-scroll">
-                <div class="timeline-header {% if can_manage_store %}timeline-with-hours{% endif %}">
-                    <div class="timeline-name">員工</div>
-                    {% if can_manage_store %}
-                    <div class="timeline-hours">已排班</div>
-                    {% endif %}
-                    <div class="timeline-grid-header" style="--timeline-columns: {{ timeline_columns }};">
-                        {% for hour in timeline_hours %}
-                        <div class="timeline-hour">{{ hour|stringformat:"02d" }}:00</div>
-                        {% endfor %}
-                    </div>
+    {% if day_layout == 'timeline' %}
+    <div class="day-timeline-scroll week-scroll">
+        <div
+            class="timeline-header {% if can_manage_store %}timeline-with-hours{% endif %}">
+            <div class="timeline-name">員工</div>
+            {% if can_manage_store %}
+            <div class="timeline-hours">已排班</div>
+            {% endif %}
+            <div class="timeline-grid-header"
+                style="--timeline-columns: {{ timeline_columns }};">
+                {% for hour in timeline_hours %}
+                <div class="timeline-hour">{{ hour|stringformat:"02d" }}:00
                 </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% for row in rows %}
+        {% with day=row.days.0 %}
+        <div class="timeline-row {% if can_manage_store %}timeline-with-hours{% endif %}{% if user.is_authenticated and user.userprofile and user.userprofile.id == row.employee.id %} my-row-highlight{% elif row.employee.role == 'manager' %} manager-row{% endif %}"
+            data-employee-id="{{ row.employee.id }}"
+            data-employee-name="{{ row.display_name }}">
+            <div class="timeline-name">
+                {% if can_manage_store %}
+                <a class="name-link"
+                    href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                {% else %}
+                {{ row.display_name }}
+                {% endif %}
+            </div>
+            {% if can_manage_store %}
+            <div class="timeline-hours">
+                <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+            </div>
+            {% endif %}
+            <div class="timeline-grid" data-date="{{ day.date_str }}"
+                style="--timeline-columns: {{ timeline_columns }};">
+                {% if day.shifts %}
+                {% for shift in day.shifts %}
+                <span class="shift-block" data-id="{{ shift.id }}"
+                    data-employee="{{ row.display_name }}"
+                    data-employee-id="{{ row.employee.id }}"
+                    data-date="{{ day.date_str }}"
+                    data-start="{{ shift.start_label }}"
+                    data-end="{{ shift.end_label }}"
+                    data-note="{{ shift.note|default_if_none:''|escape }}"
+                    data-break-minutes="{{ shift.break_minutes }}"
+                    data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                    data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                    title="{{ shift.note|default_if_none:''|escape }}"
+                    style="left: {{ shift.offset_pct }}%; width: {{ shift.width_pct }}%; --shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                    {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
+                </span>
+                {% endfor %}
+                {% else %}
+                <span class="row-empty">—</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="week-scroll">
+        <table class="week-table">
+            <thead>
+                <tr>
+                    <th class="name-cell">員工\日期</th>
+                    {% if can_manage_store %}
+                    <th class="hours-cell">已排班時數</th>
+                    {% endif %}
+                    {% for day in day_headers %}
+                    <th
+                        class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
+                        <a class="date-link"
+                            href="?view=day&date={{ day.date_str }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}"
+                            data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
+                        {% if day.holiday_name %}
+                        <span class="holiday-badge">{{ day.holiday_name }}</span>
+                        {% endif %}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
                 {% for row in rows %}
-                {% with day=row.days.0 %}
-                <div class="timeline-row {% if can_manage_store %}timeline-with-hours{% endif %}{% if row.employee.role == "manager" %} manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"
-                     data-employee-id="{{ row.employee.id }}"
-                     data-employee-name="{{ row.display_name }}">
-                    <div class="timeline-name">
+                <tr data-employee-id="{{ row.employee.id }}"
+                    class="{% if user.is_authenticated and user.userprofile and user.userprofile.id == row.employee.id %}my-row-highlight{% elif row.employee.role == 'manager' %}manager-row{% endif %}">
+                    <td class="name-cell">
                         {% if can_manage_store %}
-                        <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                        <a class="name-link"
+                            href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
                         {% else %}
                         {{ row.display_name }}
                         {% endif %}
-                    </div>
+                    </td>
                     {% if can_manage_store %}
-                    <div class="timeline-hours">
+                    <td class="hours-cell">
                         <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
-                    </div>
+                    </td>
                     {% endif %}
-                    <div class="timeline-grid"
-                         data-date="{{ day.date_str }}"
-                         style="--timeline-columns: {{ timeline_columns }};">
+                    {% for day in row.days %}
+                    <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
+                        data-employee-id="{{ row.employee.id }}"
+                        data-employee-name="{{ row.display_name }}"
+                        data-date="{{ day.date_str }}">
+                        <span class="cell-frame"></span>
                         {% if day.shifts %}
-                            {% for shift in day.shifts %}
-                            <span class="shift-block"
-                                  data-id="{{ shift.id }}"
-                                  data-employee="{{ row.display_name }}"
-                                  data-employee-id="{{ row.employee.id }}"
-                                  data-date="{{ day.date_str }}"
-                                  data-start="{{ shift.start_label }}"
-                                  data-end="{{ shift.end_label }}"
-                                  data-note="{{ shift.note|default_if_none:''|escape }}"
-                                  data-break-minutes="{{ shift.break_minutes }}"
-                                  data-store-id="{{ shift.store_id|default_if_none:'' }}"
-                                  data-store-name="{{ shift.store_name|default_if_none:'' }}"
-                                  title="{{ shift.note|default_if_none:''|escape }}"
-                                  style="left: {{ shift.offset_pct }}%; width: {{ shift.width_pct }}%; --shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
-                                {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
-                            </span>
-                            {% endfor %}
+                        {% for shift in day.shifts %}
+                        <span class="shift-line" data-id="{{ shift.id }}"
+                            data-employee="{{ row.display_name }}"
+                            data-employee-id="{{ row.employee.id }}"
+                            data-date="{{ day.date_str }}"
+                            data-start="{{ shift.start_label }}"
+                            data-end="{{ shift.end_label }}"
+                            data-note="{{ shift.note|default_if_none:''|escape }}"
+                            data-break-minutes="{{ shift.break_minutes }}"
+                            data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                            data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                            title="{{ shift.note|default_if_none:''|escape }}"
+                            style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                            {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
+                        </span>
+                        {% endfor %}
                         {% else %}
-                            <span class="row-empty">—</span>
+                        <span class="row-empty">—</span>
                         {% endif %}
-                    </div>
-                </div>
-                {% endwith %}
+                    </td>
+                    {% endfor %}
+                </tr>
                 {% endfor %}
-            </div>
-        {% else %}
-            <div class="week-scroll">
-                <table class="week-table">
-                    <thead>
-                        <tr>
-                            <th class="name-cell">員工\日期</th>
-                            {% if can_manage_store %}
-                            <th class="hours-cell">已排班時數</th>
-                            {% endif %}
-                            {% for day in day_headers %}
-                            <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
-                                <a class="date-link" href="?view=day&date={{ day.date_str }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
-                                {% if day.holiday_name %}
-                                    <span class="holiday-badge">{{ day.holiday_name }}</span>
-                                {% endif %}
-                            </th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                        <tr data-employee-id="{{ row.employee.id }}"{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
-                            <td class="name-cell">
-                                {% if can_manage_store %}
-                                <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
-                                {% else %}
-                                {{ row.display_name }}
-                                {% endif %}
-                            </td>
-                            {% if can_manage_store %}
-                            <td class="hours-cell">
-                                <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
-                            </td>
-                            {% endif %}
-                            {% for day in row.days %}
-                            <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
-                                data-employee-id="{{ row.employee.id }}"
-                                data-employee-name="{{ row.display_name }}"
-                                data-date="{{ day.date_str }}">
-                                <span class="cell-frame"></span>
-                                {% if day.shifts %}
-                                    {% for shift in day.shifts %}
-                                    <span class="shift-line"
-                                          data-id="{{ shift.id }}"
-                                          data-employee="{{ row.display_name }}"
-                                          data-employee-id="{{ row.employee.id }}"
-                                          data-date="{{ day.date_str }}"
-                                          data-start="{{ shift.start_label }}"
-                                          data-end="{{ shift.end_label }}"
-                                          data-note="{{ shift.note|default_if_none:''|escape }}"
-                                          data-break-minutes="{{ shift.break_minutes }}"
-                                          data-store-id="{{ shift.store_id|default_if_none:'' }}"
-                                          data-store-name="{{ shift.store_name|default_if_none:'' }}"
-                                          title="{{ shift.note|default_if_none:''|escape }}"
-                                          style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
-                                        {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
-                                    </span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="row-empty">—</span>
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
     {% elif view == 'week' %}
-        <div class="week-scroll">
-            <table class="week-table">
-                <thead>
-                    <tr>
-                        <th class="name-cell">員工\日期</th>
-                        {% if can_manage_store %}
-                        <th class="hours-cell">已排班時數</th>
+    <div class="week-scroll">
+        <table class="week-table">
+            <thead>
+                <tr>
+                    <th class="name-cell">員工\日期</th>
+                    {% if can_manage_store %}
+                    <th class="hours-cell">已排班時數</th>
+                    {% endif %}
+                    {% for day in day_headers %}
+                    <th
+                        class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
+                        <a class="date-link"
+                            href="?view=day&date={{ day.date_str }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}"
+                            data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
+                        {% if day.holiday_name %}
+                        <span class="holiday-badge">{{ day.holiday_name }}</span>
                         {% endif %}
-                        {% for day in day_headers %}
-                        <th class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %}">
-                            <a class="date-link" href="?view=day&date={{ day.date_str }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date_str }}">{{ day.label }}</a>
-                            {% if day.holiday_name %}
-                                <span class="holiday-badge">{{ day.holiday_name }}</span>
-                            {% endif %}
-                        </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                    <tr data-employee-id="{{ row.employee.id }}"{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
-                        <td class="name-cell">
-                            {% if can_manage_store %}
-                            <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
-                            {% else %}
-                            {{ row.display_name }}
-                            {% endif %}
-                        </td>
-                        {% if can_manage_store %}
-                        <td class="hours-cell">
-                            <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
-                        </td>
-                        {% endif %}
-                        {% for day in row.days %}
-                        <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
-                            data-employee-id="{{ row.employee.id }}"
-                            data-employee-name="{{ row.display_name }}"
-                            data-date="{{ day.date_str }}">
-                            <span class="cell-frame"></span>
-                            {% if day.shifts %}
-                                {% for shift in day.shifts %}
-                                <span class="shift-line"
-                                      data-id="{{ shift.id }}"
-                                      data-employee="{{ row.display_name }}"
-                                      data-employee-id="{{ row.employee.id }}"
-                                      data-date="{{ shift.date|date:'Y-m-d' }}"
-                                      data-start="{{ shift.start_label }}"
-                                      data-end="{{ shift.end_label }}"
-                                      data-note="{{ shift.note|default_if_none:''|escape }}"
-                                      data-break-minutes="{{ shift.break_minutes }}"
-                                      data-store-id="{{ shift.store_id|default_if_none:'' }}"
-                                      data-store-name="{{ shift.store_name|default_if_none:'' }}"
-                                      title="{{ shift.note|default_if_none:''|escape }}"
-                                      style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
-                                    {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
-                                </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="row-empty">—</span>
-                            {% endif %}
-                        </td>
-                        {% endfor %}
-                    </tr>
+                    </th>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr data-employee-id="{{ row.employee.id }}"
+                    class="{% if user.is_authenticated and user.userprofile and user.userprofile.id == row.employee.id %}my-row-highlight{% elif row.employee.role == 'manager' %}manager-row{% endif %}">
+                    <td class="name-cell">
+                        {% if can_manage_store %}
+                        <a class="name-link"
+                            href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                        {% else %}
+                        {{ row.display_name }}
+                        {% endif %}
+                    </td>
+                    {% if can_manage_store %}
+                    <td class="hours-cell">
+                        <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                    </td>
+                    {% endif %}
+                    {% for day in row.days %}
+                    <td class="{% if day.holiday_name %}holiday-national-week{% elif day.is_weekend %}holiday-general-week{% endif %}{% if day.date_str == today_str %} today-highlight{% endif %} shift-cell{% if not day.shifts %} shift-cell-empty{% endif %}"
+                        data-employee-id="{{ row.employee.id }}"
+                        data-employee-name="{{ row.display_name }}"
+                        data-date="{{ day.date_str }}">
+                        <span class="cell-frame"></span>
+                        {% if day.shifts %}
+                        {% for shift in day.shifts %}
+                        <span class="shift-line" data-id="{{ shift.id }}"
+                            data-employee="{{ row.display_name }}"
+                            data-employee-id="{{ row.employee.id }}"
+                            data-date="{{ shift.date|date:'Y-m-d' }}"
+                            data-start="{{ shift.start_label }}"
+                            data-end="{{ shift.end_label }}"
+                            data-note="{{ shift.note|default_if_none:''|escape }}"
+                            data-break-minutes="{{ shift.break_minutes }}"
+                            data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                            data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                            title="{{ shift.note|default_if_none:''|escape }}"
+                            style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                            {{ shift.start_label }}–{{ shift.end_label }}{% if not hide_store_info and shift.store_name %} {{ shift.store_name }}{% endif %}
+                        </span>
+                        {% endfor %}
+                        {% else %}
+                        <span class="row-empty">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-        <div class="month-scroll">
-            <table class="month-table">
-                <thead>
-                    <tr>
-                        <th class="name-cell">員工\日期</th>
-                        {% if can_manage_store %}
-                        <th class="hours-cell">已排班時數</th>
+    <div class="month-scroll">
+        <table class="month-table">
+            <thead>
+                <tr>
+                    <th class="name-cell">員工\日期</th>
+                    {% if can_manage_store %}
+                    <th class="hours-cell">已排班時數</th>
+                    {% endif %}
+                    {% for day in month_days %}
+                    <th
+                        class="{% if day.holiday_name %}holiday-national-month{% elif day.is_weekend %}holiday-general-month{% endif %}{% if day.date == today_str %} today-highlight{% endif %}">
+                        <a class="date-link"
+                            href="?view=day&date={{ day.date }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}"
+                            data-day-link data-date="{{ day.date }}">{{ day.day }}（{{ day.weekday_label }}）</a>
+                        {% if day.holiday_name %}
+                        <span class="holiday-badge">{{ day.holiday_name }}</span>
                         {% endif %}
-                        {% for day in month_days %}
-                        <th class="{% if day.holiday_name %}holiday-national-month{% elif day.is_weekend %}holiday-general-month{% endif %}{% if day.date == today_str %} today-highlight{% endif %}">
-                            <a class="date-link" href="?view=day&date={{ day.date }}&day_layout={{ day_layout }}{% if show_empty_rows %}&show_empty=1{% endif %}" data-day-link data-date="{{ day.date }}">{{ day.day }}（{{ day.weekday_label }}）</a>
-                            {% if day.holiday_name %}
-                                <span class="holiday-badge">{{ day.holiday_name }}</span>
-                            {% endif %}
-                        </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in month_rows %}
-                    <tr data-employee-id="{{ row.employee.id }}"{% if row.employee.role == "manager" %} class="manager-row{% if row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} my-row-highlight{% endif %}"{% elif row.employee.id|stringformat:"s" == allowed_employee_id|stringformat:"s" %} class="my-row-highlight"{% endif %}>
-                        <td class="name-cell">
-                            {% if can_manage_store %}
-                            <a class="name-link" href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
-                            {% else %}
-                            {{ row.display_name }}
-                            {% endif %}
-                        </td>
-                        {% if can_manage_store %}
-                        <td class="hours-cell">
-                            <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
-                        </td>
-                        {% endif %}
-                        {% for cell in row.day_cells %}
-                        <td class="{% if cell.holiday_name %}holiday-national-month{% elif cell.is_weekend %}holiday-general-month{% endif %}{% if cell.date == today_str %} today-highlight{% endif %} shift-cell{% if not cell.shifts %} shift-cell-empty{% endif %}"
-                            data-employee-id="{{ row.employee.id }}"
-                            data-employee-name="{{ row.display_name }}"
-                            data-date="{{ cell.date }}">
-                            <span class="cell-frame"></span>
-                            {% if cell.shifts %}
-                                {% for shift in cell.shifts %}
-                                <span class="shift-line"
-                                      data-id="{{ shift.id }}"
-                                      data-employee="{{ row.display_name }}"
-                                      data-employee-id="{{ row.employee.id }}"
-                                      data-date="{{ shift.date }}"
-                                      data-start="{{ shift.start }}"
-                                      data-end="{{ shift.end }}"
-                                      data-note="{{ shift.note|default_if_none:''|escape }}"
-                                      data-break-minutes="{{ shift.break_minutes }}"
-                                      data-store-id="{{ shift.store_id|default_if_none:'' }}"
-                                      data-store-name="{{ shift.store_name|default_if_none:'' }}"
-                                      title="{{ shift.note|default_if_none:''|escape }}"
-                                      style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
-                                    {% if hide_store_info %}
-                                        {{ shift.label_no_store }}
-                                    {% else %}
-                                        {{ shift.label }}
-                                    {% endif %}
-                                </span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="row-empty">—</span>
-                            {% endif %}
-                        </td>
-                        {% endfor %}
-                    </tr>
+                    </th>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in month_rows %}
+                <tr data-employee-id="{{ row.employee.id }}"
+                    class="{% if user.is_authenticated and user.userprofile and user.userprofile.id == row.employee.id %}my-row-highlight{% elif row.employee.role == 'manager' %}manager-row{% endif %}">
+                    <td class="name-cell">
+                        {% if can_manage_store %}
+                        <a class="name-link"
+                            href="{% url 'users:worker_detail' profile_id=row.employee.id %}">{{ row.display_name }}</a>
+                        {% else %}
+                        {{ row.display_name }}
+                        {% endif %}
+                    </td>
+                    {% if can_manage_store %}
+                    <td class="hours-cell">
+                        <span class="text-dark fw-bold">{{ row.scheduled_hours }}</span>
+                    </td>
+                    {% endif %}
+                    {% for cell in row.day_cells %}
+                    <td class="{% if cell.holiday_name %}holiday-national-month{% elif cell.is_weekend %}holiday-general-month{% endif %}{% if cell.date == today_str %} today-highlight{% endif %} shift-cell{% if not cell.shifts %} shift-cell-empty{% endif %}"
+                        data-employee-id="{{ row.employee.id }}"
+                        data-employee-name="{{ row.display_name }}"
+                        data-date="{{ cell.date }}">
+                        <span class="cell-frame"></span>
+                        {% if cell.shifts %}
+                        {% for shift in cell.shifts %}
+                        <span class="shift-line" data-id="{{ shift.id }}"
+                            data-employee="{{ row.display_name }}"
+                            data-employee-id="{{ row.employee.id }}"
+                            data-date="{{ shift.date }}"
+                            data-start="{{ shift.start }}"
+                            data-end="{{ shift.end }}"
+                            data-note="{{ shift.note|default_if_none:''|escape }}"
+                            data-break-minutes="{{ shift.break_minutes }}"
+                            data-store-id="{{ shift.store_id|default_if_none:'' }}"
+                            data-store-name="{{ shift.store_name|default_if_none:'' }}"
+                            title="{{ shift.note|default_if_none:''|escape }}"
+                            style="--shift-bg: {{ shift.store_color }}; --shift-fg: {{ shift.store_text_color }};">
+                            {% if hide_store_info %}
+                            {{ shift.label_no_store }}
+                            {% else %}
+                            {{ shift.label }}
+                            {% endif %}
+                        </span>
+                        {% endfor %}
+                        {% else %}
+                        <span class="row-empty">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% endif %}
 </div>
 
 {% if not read_only %}
 <div class="modal fade" id="shiftModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
+    <div class="modal-dialog">
+        <div class="modal-content">
 
-      <div class="modal-header">
-        <h5 class="modal-title" id="shiftModalTitle">排班資訊</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <div id="shiftAlert" class="alert alert-danger d-none" role="alert"></div>
-        <p><strong>員工：</strong> <span id="m-employee"></span></p>
-        <p><strong>日期：</strong> <span id="m-date"></span></p>
-
-        <div class="row g-2">
-          <div class="col">
-            <label>開始時間</label>
-            <div class="input-group">
-              <select id="m-start-hour" class="form-select"></select>
-              <span class="input-group-text">:</span>
-              <select id="m-start-minute" class="form-select"></select>
+            <div class="modal-header">
+                <h5 class="modal-title" id="shiftModalTitle">排班資訊</h5>
+                <button type="button" class="btn-close"
+                    data-bs-dismiss="modal"></button>
             </div>
-          </div>
-          <div class="col">
-            <label>結束時間</label>
-            <div class="input-group">
-              <select id="m-end-hour" class="form-select"></select>
-              <span class="input-group-text">:</span>
-              <select id="m-end-minute" class="form-select"></select>
+
+            <div class="modal-body">
+                <div id="shiftAlert" class="alert alert-danger d-none"
+                    role="alert"></div>
+                <p><strong>員工：</strong> <span id="m-employee"></span></p>
+                <p><strong>日期：</strong> <span id="m-date"></span></p>
+
+                <div class="row g-2">
+                    <div class="col">
+                        <label>開始時間</label>
+                        <div class="input-group">
+                            <select id="m-start-hour"
+                                class="form-select"></select>
+                            <span class="input-group-text">:</span>
+                            <select id="m-start-minute"
+                                class="form-select"></select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label>結束時間</label>
+                        <div class="input-group">
+                            <select id="m-end-hour"
+                                class="form-select"></select>
+                            <span class="input-group-text">:</span>
+                            <select id="m-end-minute"
+                                class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+                {% if can_manage_store %}
+                <div class="mt-3">
+                    <label>休息時間</label>
+                    <select id="m-break" class="form-select"></select>
+                    <div class="form-text">依排班時數自動帶入。</div>
+                </div>
+                {% endif %}
+                {% if can_manage_store %}
+                <div class="mt-3">
+                    <label>店別</label>
+                    <select id="m-store" class="form-select">
+                        <option value="">未排定</option>
+                        {% for store in stores %}
+                        <option value="{{ store.id }}">{{ store.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox"
+                        id="m-split-toggle">
+                    <label class="form-check-label"
+                        for="m-split-toggle">分段新增</label>
+                </div>
+                <div id="m-split-section" class="mt-3 d-none">
+                    <div class="row g-2">
+                        <div class="col">
+                            <label>新增段開始</label>
+                            <div class="input-group">
+                                <select id="m-split-start-hour"
+                                    class="form-select"></select>
+                                <span class="input-group-text">:</span>
+                                <select id="m-split-start-minute"
+                                    class="form-select"></select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <label>新增段結束</label>
+                            <div class="input-group">
+                                <select id="m-split-end-hour"
+                                    class="form-select"></select>
+                                <span class="input-group-text">:</span>
+                                <select id="m-split-end-minute"
+                                    class="form-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label>新增段店別</label>
+                        <select id="m-split-store" class="form-select">
+                            <option value="">未排定</option>
+                            {% for store in stores %}
+                            <option value="{{ store.id }}">{{ store.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <label>備註</label>
+                    <input id="m-note" class="form-control" type="text" {% if not can_manage_store %} readonly{% endif %}>
+                </div>
+
+                <input type="hidden" id="m-id">
+                <input type="hidden" id="m-employee-id">
+                <input type="hidden" id="m-date-hidden">
+
             </div>
-          </div>
-        </div>
-        {% if can_manage_store %}
-        <div class="mt-3">
-          <label>休息時間</label>
-          <select id="m-break" class="form-select"></select>
-          <div class="form-text">依排班時數自動帶入。</div>
-        </div>
-        {% endif %}
-        {% if can_manage_store %}
-        <div class="mt-3">
-          <label>店別</label>
-          <select id="m-store" class="form-select">
-            <option value="">未排定</option>
-            {% for store in stores %}
-              <option value="{{ store.id }}">{{ store.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-check mt-3">
-          <input class="form-check-input" type="checkbox" id="m-split-toggle">
-          <label class="form-check-label" for="m-split-toggle">分段新增</label>
-        </div>
-        <div id="m-split-section" class="mt-3 d-none">
-          <div class="row g-2">
-            <div class="col">
-              <label>新增段開始</label>
-              <div class="input-group">
-                <select id="m-split-start-hour" class="form-select"></select>
-                <span class="input-group-text">:</span>
-                <select id="m-split-start-minute" class="form-select"></select>
-              </div>
+
+            <div class="modal-footer">
+                <button id="deleteShiftBtn" class="btn btn-danger">刪除</button>
+                <button id="updateShiftBtn" class="btn btn-primary">更新</button>
+                <button id="createShiftBtn"
+                    class="btn btn-success d-none">新增</button>
             </div>
-            <div class="col">
-              <label>新增段結束</label>
-              <div class="input-group">
-                <select id="m-split-end-hour" class="form-select"></select>
-                <span class="input-group-text">:</span>
-                <select id="m-split-end-minute" class="form-select"></select>
-              </div>
-            </div>
-          </div>
-          <div class="mt-3">
-            <label>新增段店別</label>
-            <select id="m-split-store" class="form-select">
-              <option value="">未排定</option>
-              {% for store in stores %}
-                <option value="{{ store.id }}">{{ store.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
+
         </div>
-        {% endif %}
-        <div class="mt-3">
-          <label>備註</label>
-          <input id="m-note" class="form-control" type="text"{% if not can_manage_store %} readonly{% endif %}>
-        </div>
-
-        <input type="hidden" id="m-id">
-        <input type="hidden" id="m-employee-id">
-        <input type="hidden" id="m-date-hidden">
-
-      </div>
-
-      <div class="modal-footer">
-        <button id="deleteShiftBtn" class="btn btn-danger">刪除</button>
-        <button id="updateShiftBtn" class="btn btn-primary">更新</button>
-        <button id="createShiftBtn" class="btn btn-success d-none">新增</button>
-      </div>
-
     </div>
-  </div>
 </div>
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const shiftCreateUrl = "{{ shift_create_url }}";
-const shiftUpdateUrl = "{{ shift_update_url }}";
-const shiftDeleteUrl = "{{ shift_delete_url }}";
-const allowedEmployeeId = "{{ allowed_employee_id|default:'' }}";
-const canEditOwnOnly = "{{ can_edit_own_only|default:'' }}" === "True";
-const canManageStore = "{{ can_manage_store|default:'' }}" === "True";
-const breakRules = {{ break_rules_json|default:"[]"|safe }};
-{% if employees and can_manage_store %}
-const reorderWorkersUrl = "{% url 'users:reorder_workers' %}";
-const employeeOrderToggle = document.getElementById("employeeOrderToggle");
-const employeeOrderControls = document.getElementById("employeeOrderControls");
-const employeeOrderUp = document.getElementById("employeeOrderUp");
-const employeeOrderDown = document.getElementById("employeeOrderDown");
-const employeeOrderSave = document.getElementById("employeeOrderSave");
-const employeeOrderCancel = document.getElementById("employeeOrderCancel");
-const employeeOrderStatus = document.getElementById("employeeOrderStatus");
-const employeeOrderIdsInitial = [
-    {% for employee in employees %}
+    const shiftCreateUrl = "{{ shift_create_url }}";
+    const shiftUpdateUrl = "{{ shift_update_url }}";
+    const shiftDeleteUrl = "{{ shift_delete_url }}";
+    const allowedEmployeeId = "{% if user.is_authenticated and user.userprofile %}{{ user.userprofile.id }}{% endif %}";
+    const canEditOwnOnly = "{{ can_edit_own_only|default:'' }}" === "True";
+    const canManageStore = "{{ can_manage_store|default:'' }}" === "True";
+    const breakRules = {{ break_rules_json|default:"[]" | safe }};
+    {% if employees and can_manage_store %}
+    const reorderWorkersUrl = "{% url 'users:reorder_workers' %}";
+    const employeeOrderToggle = document.getElementById("employeeOrderToggle");
+    const employeeOrderControls = document.getElementById("employeeOrderControls");
+    const employeeOrderUp = document.getElementById("employeeOrderUp");
+    const employeeOrderDown = document.getElementById("employeeOrderDown");
+    const employeeOrderSave = document.getElementById("employeeOrderSave");
+    const employeeOrderCancel = document.getElementById("employeeOrderCancel");
+    const employeeOrderStatus = document.getElementById("employeeOrderStatus");
+    const employeeOrderIdsInitial = [
+        {% for employee in employees %}
     "{{ employee.id }}",
-    {% endfor %}
+        {% endfor %}
 ];
-let employeeOrderIds = employeeOrderIdsInitial.slice();
-let employeeOrderActive = false;
-let employeeOrderSaving = false;
-let employeeOrderSelectedId = null;
+    let employeeOrderIds = employeeOrderIdsInitial.slice();
+    let employeeOrderActive = false;
+    let employeeOrderSaving = false;
+    let employeeOrderSelectedId = null;
 
-const setEmployeeOrderStatus = (message, isError = false) => {
-    if (!employeeOrderStatus) return;
-    employeeOrderStatus.textContent = message || "";
-    employeeOrderStatus.classList.toggle("is-error", Boolean(isError));
-};
+    const setEmployeeOrderStatus = (message, isError = false) => {
+        if (!employeeOrderStatus) return;
+        employeeOrderStatus.textContent = message || "";
+        employeeOrderStatus.classList.toggle("is-error", Boolean(isError));
+    };
 
-const syncEmployeeOrderButtons = () => {
-    if (!employeeOrderUp || !employeeOrderDown || !employeeOrderSave || !employeeOrderCancel) {
-        return;
-    }
-    const index = employeeOrderSelectedId ? employeeOrderIds.indexOf(employeeOrderSelectedId) : -1;
-    const disabled = !employeeOrderActive || employeeOrderSaving || index === -1;
-    employeeOrderUp.disabled = disabled || index <= 0;
-    employeeOrderDown.disabled = disabled || index === -1 || index >= employeeOrderIds.length - 1;
-    employeeOrderSave.disabled = !employeeOrderActive || employeeOrderSaving;
-    employeeOrderCancel.disabled = !employeeOrderActive || employeeOrderSaving;
-};
-
-const reorderCollection = (container, selector) => {
-    if (!container) return;
-    const rows = new Map();
-    container.querySelectorAll(selector).forEach((row) => {
-        const id = String(row.dataset.employeeId || "");
-        if (id) {
-            rows.set(id, row);
+    const syncEmployeeOrderButtons = () => {
+        if (!employeeOrderUp || !employeeOrderDown || !employeeOrderSave || !employeeOrderCancel) {
+            return;
         }
-    });
-    if (!rows.size) return;
-    const fragment = document.createDocumentFragment();
-    employeeOrderIds.forEach((id) => {
-        const row = rows.get(id);
-        if (row) {
-            fragment.appendChild(row);
+        const index = employeeOrderSelectedId ? employeeOrderIds.indexOf(employeeOrderSelectedId) : -1;
+        const disabled = !employeeOrderActive || employeeOrderSaving || index === -1;
+        employeeOrderUp.disabled = disabled || index <= 0;
+        employeeOrderDown.disabled = disabled || index === -1 || index >= employeeOrderIds.length - 1;
+        employeeOrderSave.disabled = !employeeOrderActive || employeeOrderSaving;
+        employeeOrderCancel.disabled = !employeeOrderActive || employeeOrderSaving;
+    };
+
+    const reorderCollection = (container, selector) => {
+        if (!container) return;
+        const rows = new Map();
+        container.querySelectorAll(selector).forEach((row) => {
+            const id = String(row.dataset.employeeId || "");
+            if (id) {
+                rows.set(id, row);
+            }
+        });
+        if (!rows.size) return;
+        const fragment = document.createDocumentFragment();
+        employeeOrderIds.forEach((id) => {
+            const row = rows.get(id);
+            if (row) {
+                fragment.appendChild(row);
+            }
+        });
+        if (fragment.childNodes.length) {
+            container.appendChild(fragment);
         }
-    });
-    if (fragment.childNodes.length) {
-        container.appendChild(fragment);
-    }
-};
+    };
 
-const applyEmployeeOrder = () => {
-    document.querySelectorAll(".week-table tbody, .month-table tbody").forEach((tbody) => {
-        reorderCollection(tbody, "tr[data-employee-id]");
-    });
-    document.querySelectorAll(".day-timeline-scroll").forEach((container) => {
-        reorderCollection(container, ".timeline-row[data-employee-id]");
-    });
-    document.querySelectorAll(".timeline-vertical-header").forEach((header) => {
-        reorderCollection(header, ".timeline-employee-header[data-employee-id]");
-    });
-    document.querySelectorAll(".timeline-vertical").forEach((container) => {
-        reorderCollection(container, ".timeline-employee-column[data-employee-id]");
-    });
-};
+    const applyEmployeeOrder = () => {
+        document.querySelectorAll(".week-table tbody, .month-table tbody").forEach((tbody) => {
+            reorderCollection(tbody, "tr[data-employee-id]");
+        });
+        document.querySelectorAll(".day-timeline-scroll").forEach((container) => {
+            reorderCollection(container, ".timeline-row[data-employee-id]");
+        });
+        document.querySelectorAll(".timeline-vertical-header").forEach((header) => {
+            reorderCollection(header, ".timeline-employee-header[data-employee-id]");
+        });
+        document.querySelectorAll(".timeline-vertical").forEach((container) => {
+            reorderCollection(container, ".timeline-employee-column[data-employee-id]");
+        });
+    };
 
-const clearEmployeeOrderSelection = () => {
-    document.querySelectorAll(".employee-order-selected").forEach((el) => {
-        el.classList.remove("employee-order-selected");
-    });
-};
+    const clearEmployeeOrderSelection = () => {
+        document.querySelectorAll(".employee-order-selected").forEach((el) => {
+            el.classList.remove("employee-order-selected");
+        });
+    };
 
-const applyEmployeeOrderSelection = () => {
-    clearEmployeeOrderSelection();
-    if (!employeeOrderSelectedId) return;
-    const selectors = [
-        `.timeline-row[data-employee-id="${employeeOrderSelectedId}"]`,
-        `.week-table tbody tr[data-employee-id="${employeeOrderSelectedId}"]`,
-        `.month-table tbody tr[data-employee-id="${employeeOrderSelectedId}"]`,
-        `.timeline-employee-column[data-employee-id="${employeeOrderSelectedId}"]`,
-        `.timeline-employee-header[data-employee-id="${employeeOrderSelectedId}"]`,
-    ];
-    document.querySelectorAll(selectors.join(",")).forEach((el) => {
-        el.classList.add("employee-order-selected");
-    });
-};
-
-const setEmployeeOrderActive = (active) => {
-    employeeOrderActive = active;
-    document.body.classList.toggle("employee-order-mode", active);
-    if (employeeOrderControls) {
-        employeeOrderControls.classList.toggle("is-active", active);
-    }
-    if (!active) {
-        employeeOrderSelectedId = null;
+    const applyEmployeeOrderSelection = () => {
         clearEmployeeOrderSelection();
-        setEmployeeOrderStatus("");
-    } else {
-        setEmployeeOrderStatus("請點選要排序的員工");
-    }
-    if (employeeOrderToggle) {
-        employeeOrderToggle.classList.toggle("active", active);
-    }
-    syncEmployeeOrderButtons();
-};
+        if (!employeeOrderSelectedId) return;
+        const selectors = [
+            `.timeline-row[data-employee-id="${employeeOrderSelectedId}"]`,
+            `.week-table tbody tr[data-employee-id="${employeeOrderSelectedId}"]`,
+            `.month-table tbody tr[data-employee-id="${employeeOrderSelectedId}"]`,
+            `.timeline-employee-column[data-employee-id="${employeeOrderSelectedId}"]`,
+            `.timeline-employee-header[data-employee-id="${employeeOrderSelectedId}"]`,
+        ];
+        document.querySelectorAll(selectors.join(",")).forEach((el) => {
+            el.classList.add("employee-order-selected");
+        });
+    };
 
-const saveEmployeeOrder = () => {
-    if (!reorderWorkersUrl) return;
-    employeeOrderSaving = true;
-    syncEmployeeOrderButtons();
-    setEmployeeOrderStatus("儲存中...");
-    fetch(reorderWorkersUrl, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ordered_ids: employeeOrderIds}),
-    })
-    .then(async (response) => {
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || data.ok === false) {
-            throw new Error(data.error || "儲存失敗");
+    const setEmployeeOrderActive = (active) => {
+        employeeOrderActive = active;
+        document.body.classList.toggle("employee-order-mode", active);
+        if (employeeOrderControls) {
+            employeeOrderControls.classList.toggle("is-active", active);
         }
-        setEmployeeOrderStatus("已儲存");
-        employeeOrderIdsInitial.splice(0, employeeOrderIdsInitial.length, ...employeeOrderIds);
-        setEmployeeOrderActive(false);
-    })
-    .catch((err) => {
-        setEmployeeOrderStatus(err.message || "儲存失敗", true);
-    })
-    .finally(() => {
-        employeeOrderSaving = false;
+        if (!active) {
+            employeeOrderSelectedId = null;
+            clearEmployeeOrderSelection();
+            setEmployeeOrderStatus("");
+        } else {
+            setEmployeeOrderStatus("請點選要排序的員工");
+        }
+        if (employeeOrderToggle) {
+            employeeOrderToggle.classList.toggle("active", active);
+        }
         syncEmployeeOrderButtons();
-    });
-};
+    };
 
-const cancelEmployeeOrder = () => {
-    employeeOrderIds = employeeOrderIdsInitial.slice();
-    applyEmployeeOrder();
+    const saveEmployeeOrder = () => {
+        if (!reorderWorkersUrl) return;
+        employeeOrderSaving = true;
+        syncEmployeeOrderButtons();
+        setEmployeeOrderStatus("儲存中...");
+        fetch(reorderWorkersUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ordered_ids: employeeOrderIds }),
+        })
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || data.ok === false) {
+                    throw new Error(data.error || "儲存失敗");
+                }
+                setEmployeeOrderStatus("已儲存");
+                employeeOrderIdsInitial.splice(0, employeeOrderIdsInitial.length, ...employeeOrderIds);
+                setEmployeeOrderActive(false);
+            })
+            .catch((err) => {
+                setEmployeeOrderStatus(err.message || "儲存失敗", true);
+            })
+            .finally(() => {
+                employeeOrderSaving = false;
+                syncEmployeeOrderButtons();
+            });
+    };
+
+    const cancelEmployeeOrder = () => {
+        employeeOrderIds = employeeOrderIdsInitial.slice();
+        applyEmployeeOrder();
+        setEmployeeOrderActive(false);
+    };
+
+    const moveSelectedEmployee = (direction) => {
+        if (!employeeOrderSelectedId) return;
+        const index = employeeOrderIds.indexOf(employeeOrderSelectedId);
+        if (index < 0) return;
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= employeeOrderIds.length) {
+            return;
+        }
+        const updated = employeeOrderIds.slice();
+        [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
+        employeeOrderIds = updated;
+        applyEmployeeOrder();
+        applyEmployeeOrderSelection();
+        syncEmployeeOrderButtons();
+    };
+
+    const handleEmployeeOrderPick = (event) => {
+        if (!employeeOrderActive) return;
+        const target = event.target.closest(".timeline-name, .name-cell, .timeline-employee-header");
+        if (!target) return;
+        const row = target.closest("[data-employee-id]");
+        const employeeId = row ? String(row.dataset.employeeId || "") : "";
+        if (!employeeId) return;
+        event.preventDefault();
+        employeeOrderSelectedId = employeeId;
+        applyEmployeeOrderSelection();
+        setEmployeeOrderStatus("使用 ▲▼ 移動順序");
+        syncEmployeeOrderButtons();
+    };
+
+    if (employeeOrderToggle) {
+        employeeOrderToggle.addEventListener("click", () => {
+            if (employeeOrderActive) {
+                setEmployeeOrderActive(false);
+            } else {
+                setEmployeeOrderActive(true);
+            }
+        });
+    }
+    if (employeeOrderUp) {
+        employeeOrderUp.addEventListener("click", () => moveSelectedEmployee("up"));
+    }
+    if (employeeOrderDown) {
+        employeeOrderDown.addEventListener("click", () => moveSelectedEmployee("down"));
+    }
+    if (employeeOrderSave) {
+        employeeOrderSave.addEventListener("click", saveEmployeeOrder);
+    }
+    if (employeeOrderCancel) {
+        employeeOrderCancel.addEventListener("click", cancelEmployeeOrder);
+    }
+    document.addEventListener("click", handleEmployeeOrderPick);
     setEmployeeOrderActive(false);
-};
-
-const moveSelectedEmployee = (direction) => {
-    if (!employeeOrderSelectedId) return;
-    const index = employeeOrderIds.indexOf(employeeOrderSelectedId);
-    if (index < 0) return;
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= employeeOrderIds.length) {
-        return;
-    }
-    const updated = employeeOrderIds.slice();
-    [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
-    employeeOrderIds = updated;
-    applyEmployeeOrder();
-    applyEmployeeOrderSelection();
-    syncEmployeeOrderButtons();
-};
-
-const handleEmployeeOrderPick = (event) => {
-    if (!employeeOrderActive) return;
-    const target = event.target.closest(".timeline-name, .name-cell, .timeline-employee-header");
-    if (!target) return;
-    const row = target.closest("[data-employee-id]");
-    const employeeId = row ? String(row.dataset.employeeId || "") : "";
-    if (!employeeId) return;
-    event.preventDefault();
-    employeeOrderSelectedId = employeeId;
-    applyEmployeeOrderSelection();
-    setEmployeeOrderStatus("使用 ▲▼ 移動順序");
-    syncEmployeeOrderButtons();
-};
-
-if (employeeOrderToggle) {
-    employeeOrderToggle.addEventListener("click", () => {
-        if (employeeOrderActive) {
-            setEmployeeOrderActive(false);
-        } else {
-            setEmployeeOrderActive(true);
-        }
-    });
-}
-if (employeeOrderUp) {
-    employeeOrderUp.addEventListener("click", () => moveSelectedEmployee("up"));
-}
-if (employeeOrderDown) {
-    employeeOrderDown.addEventListener("click", () => moveSelectedEmployee("down"));
-}
-if (employeeOrderSave) {
-    employeeOrderSave.addEventListener("click", saveEmployeeOrder);
-}
-if (employeeOrderCancel) {
-    employeeOrderCancel.addEventListener("click", cancelEmployeeOrder);
-}
-document.addEventListener("click", handleEmployeeOrderPick);
-setEmployeeOrderActive(false);
-{% endif %}
-const rememberScroll = () => {
-    try {
-        sessionStorage.setItem("timelineScrollY", String(window.scrollY || 0));
-        const weekScroll = document.querySelector(".week-scroll");
-        const monthScroll = document.querySelector(".month-scroll");
-        if (weekScroll) {
-            sessionStorage.setItem("timelineWeekScrollTop", String(weekScroll.scrollTop || 0));
-        }
-        if (monthScroll) {
-            sessionStorage.setItem("timelineMonthScrollTop", String(monthScroll.scrollTop || 0));
-        }
-    } catch (e) {}
-};
-const restoreScroll = () => {
-    try {
-        const stored = sessionStorage.getItem("timelineScrollY");
-        const weekStored = sessionStorage.getItem("timelineWeekScrollTop");
-        const monthStored = sessionStorage.getItem("timelineMonthScrollTop");
-        sessionStorage.removeItem("timelineScrollY");
-        sessionStorage.removeItem("timelineWeekScrollTop");
-        sessionStorage.removeItem("timelineMonthScrollTop");
-        if (stored !== null) {
-            const y = parseInt(stored, 10);
-            if (!Number.isNaN(y)) {
-                window.scrollTo(0, y);
+    {% endif %}
+    const rememberScroll = () => {
+        try {
+            sessionStorage.setItem("timelineScrollY", String(window.scrollY || 0));
+            const weekScroll = document.querySelector(".week-scroll");
+            const monthScroll = document.querySelector(".month-scroll");
+            if (weekScroll) {
+                sessionStorage.setItem("timelineWeekScrollTop", String(weekScroll.scrollTop || 0));
             }
-        }
-        const weekScroll = document.querySelector(".week-scroll");
-        if (weekScroll && weekStored !== null) {
-            const top = parseInt(weekStored, 10);
-            if (!Number.isNaN(top)) {
-                weekScroll.scrollTop = top;
+            if (monthScroll) {
+                sessionStorage.setItem("timelineMonthScrollTop", String(monthScroll.scrollTop || 0));
             }
-        }
-        const monthScroll = document.querySelector(".month-scroll");
-        if (monthScroll && monthStored !== null) {
-            const top = parseInt(monthStored, 10);
-            if (!Number.isNaN(top)) {
-                monthScroll.scrollTop = top;
+        } catch (e) { }
+    };
+    const restoreScroll = () => {
+        try {
+            const stored = sessionStorage.getItem("timelineScrollY");
+            const weekStored = sessionStorage.getItem("timelineWeekScrollTop");
+            const monthStored = sessionStorage.getItem("timelineMonthScrollTop");
+            sessionStorage.removeItem("timelineScrollY");
+            sessionStorage.removeItem("timelineWeekScrollTop");
+            sessionStorage.removeItem("timelineMonthScrollTop");
+            if (stored !== null) {
+                const y = parseInt(stored, 10);
+                if (!Number.isNaN(y)) {
+                    window.scrollTo(0, y);
+                }
             }
-        }
-    } catch (e) {}
-};
-window.addEventListener("load", () => {
-    setTimeout(restoreScroll, 0);
-});
-const canEditAssignedShift = (el) => {
-    if (canManageStore) return true;
-    const storeId = (el.dataset.storeId || "").trim().toLowerCase();
-    const storeName = (el.dataset.storeName || "").trim();
-    if (storeName) return false;
-    return !storeId || storeId === "none" || storeId === "null" || storeId === "0";
-};
-let activeCreateTarget = null;
-const setCreateTarget = (el) => {
-    if (activeCreateTarget) {
-        activeCreateTarget.classList.remove("create-target");
-    }
-    activeCreateTarget = el || null;
-    if (activeCreateTarget) {
-        activeCreateTarget.classList.add("create-target");
-    }
-};
-const clearCreateTarget = () => {
-    if (activeCreateTarget) {
-        activeCreateTarget.classList.remove("create-target");
-        activeCreateTarget = null;
-    }
-};
-const canEditEmployee = (employeeId) => {
-    if (!canEditOwnOnly) return true;
-    if (!allowedEmployeeId) return false;
-    return String(employeeId) === String(allowedEmployeeId);
-};
-{% if not read_only %}
-function buildTimeOptions(selectEl) {
-    const pad = (value) => String(value).padStart(2, "0");
-    selectEl.innerHTML = "";
-    for (let hour = 8; hour <= 23; hour += 1) {
-        const label = pad(hour);
-        const opt = document.createElement("option");
-        opt.value = label;
-        opt.textContent = label;
-        selectEl.appendChild(opt);
-    }
-}
-
-function buildMinuteOptions(selectEl) {
-    selectEl.innerHTML = "";
-    ["00", "15", "30", "45"].forEach((minute) => {
-        const opt = document.createElement("option");
-        opt.value = minute;
-        opt.textContent = minute;
-        selectEl.appendChild(opt);
-    });
-}
-
-function buildBreakOptions(selectEl) {
-    selectEl.innerHTML = "";
-    [0, 30, 60, 90, 120].forEach((minutes) => {
-        const opt = document.createElement("option");
-        const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
-        const mins = String(minutes % 60).padStart(2, "0");
-        opt.value = String(minutes);
-        opt.textContent = `${hours}:${mins}`;
-        selectEl.appendChild(opt);
-    });
-}
-
-buildTimeOptions(document.getElementById("m-start-hour"));
-buildTimeOptions(document.getElementById("m-end-hour"));
-buildMinuteOptions(document.getElementById("m-start-minute"));
-buildMinuteOptions(document.getElementById("m-end-minute"));
-const breakSelect = document.getElementById("m-break");
-if (breakSelect) {
-    buildBreakOptions(breakSelect);
-    breakSelect.addEventListener("change", () => {
-        manualBreakOverride = true;
-    });
-}
-["m-start-hour", "m-start-minute", "m-end-hour", "m-end-minute"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) {
-        el.addEventListener("change", updateBreakFromTimes);
-    }
-});
-if (canManageStore) {
-    buildTimeOptions(document.getElementById("m-split-start-hour"));
-    buildTimeOptions(document.getElementById("m-split-end-hour"));
-    buildMinuteOptions(document.getElementById("m-split-start-minute"));
-    buildMinuteOptions(document.getElementById("m-split-end-minute"));
-}
-
-const splitToggle = document.getElementById("m-split-toggle");
-const splitSection = document.getElementById("m-split-section");
-if (canManageStore && splitToggle && splitSection) {
-    splitToggle.addEventListener("change", () => {
-        splitSection.classList.toggle("d-none", !splitToggle.checked);
-    });
-}
-
-function setModalMode(mode) {
-    const deleteBtn = document.getElementById("deleteShiftBtn");
-    const updateBtn = document.getElementById("updateShiftBtn");
-    const createBtn = document.getElementById("createShiftBtn");
-    const titleEl = document.getElementById("shiftModalTitle");
-    hideAlert();
-
-    if (mode === "create") {
-        deleteBtn.classList.add("d-none");
-        updateBtn.classList.add("d-none");
-        createBtn.classList.remove("d-none");
-        titleEl.textContent = "新增班表";
-        return;
-    }
-
-    deleteBtn.classList.remove("d-none");
-    updateBtn.classList.remove("d-none");
-    createBtn.classList.add("d-none");
-    titleEl.textContent = "排班資訊";
-}
-
-function timeToMinutes(timeStr) {
-    const [h, m] = timeStr.split(":").map(Number);
-    return (h * 60) + m;
-}
-
-function addHoursToTime(timeStr, hoursToAdd = 1) {
-    const total = timeToMinutes(timeStr) + (hoursToAdd * 60);
-    const minutes = ((total % (24 * 60)) + (24 * 60)) % (24 * 60);
-    const h = String(Math.floor(minutes / 60)).padStart(2, "0");
-    const m = String(minutes % 60).padStart(2, "0");
-    return `${h}:${m}`;
-}
-
-function setTimeSelects(prefix, timeStr) {
-    const [hour, minute] = timeStr.split(":");
-    const hourEl = document.getElementById(`${prefix}-hour`);
-    const minuteEl = document.getElementById(`${prefix}-minute`);
-    if (!hourEl || !minuteEl) {
-        return;
-    }
-    hourEl.value = hour;
-    minuteEl.value = minute;
-}
-
-function getTimeValues() {
-    const startHour = document.getElementById("m-start-hour").value;
-    const startMinute = document.getElementById("m-start-minute").value;
-    const endHour = document.getElementById("m-end-hour").value;
-    const endMinute = document.getElementById("m-end-minute").value;
-    if (!startHour || !startMinute || !endHour || !endMinute) {
-        showAlert("請選擇開始與結束時間。");
-        return null;
-    }
-    const startValue = `${startHour}:${startMinute}`;
-    const endValue = `${endHour}:${endMinute}`;
-    if (timeToMinutes(endValue) <= timeToMinutes(startValue)) {
-        showAlert("結束時間需晚於開始時間。");
-        return null;
-    }
-    return { startValue, endValue };
-}
-
-function getBreakValue() {
-    const breakEl = document.getElementById("m-break");
-    if (!breakEl) {
-        return 0;
-    }
-    const value = parseInt(breakEl.value || "0", 10);
-    return Number.isNaN(value) ? 0 : value;
-}
-
-function getDefaultBreakMinutes(startValue, endValue) {
-    const duration = timeToMinutes(endValue) - timeToMinutes(startValue);
-    if (duration <= 0 || !Array.isArray(breakRules)) {
-        return 0;
-    }
-    let result = 0;
-    breakRules.forEach((rule) => {
-        const threshold = Number(rule.min_hours) * 60;
-        const minutes = Number(rule.break_minutes);
-        if (!Number.isNaN(threshold) && !Number.isNaN(minutes) && duration >= threshold) {
-            result = Math.max(result, minutes);
-        }
-    });
-    return result;
-}
-
-let manualBreakOverride = false;
-
-function updateBreakFromTimes() {
-    const breakEl = document.getElementById("m-break");
-    if (!breakEl) {
-        return;
-    }
-    if (manualBreakOverride) {
-        return;
-    }
-    const startHour = document.getElementById("m-start-hour").value;
-    const startMinute = document.getElementById("m-start-minute").value;
-    const endHour = document.getElementById("m-end-hour").value;
-    const endMinute = document.getElementById("m-end-minute").value;
-    if (!startHour || !startMinute || !endHour || !endMinute) {
-        breakEl.value = "0";
-        return;
-    }
-    const startValue = `${startHour}:${startMinute}`;
-    const endValue = `${endHour}:${endMinute}`;
-    breakEl.value = String(getDefaultBreakMinutes(startValue, endValue));
-}
-
-function getStoreValue() {
-    if (!canManageStore) {
-        return null;
-    }
-    const storeEl = document.getElementById("m-store");
-    if (!storeEl) {
-        showAlert("請選擇店別。");
-        return null;
-    }
-    return storeEl.value;
-}
-
-function getSplitValues() {
-    if (!canManageStore || !splitToggle || !splitToggle.checked) {
-        return null;
-    }
-    const startHour = document.getElementById("m-split-start-hour").value;
-    const startMinute = document.getElementById("m-split-start-minute").value;
-    const endHour = document.getElementById("m-split-end-hour").value;
-    const endMinute = document.getElementById("m-split-end-minute").value;
-    const storeEl = document.getElementById("m-split-store");
-    if (!startHour || !startMinute || !endHour || !endMinute || !storeEl || !storeEl.value) {
-        showAlert("請填寫分段時間與店別。");
-        return null;
-    }
-    const startValue = `${startHour}:${startMinute}`;
-    const endValue = `${endHour}:${endMinute}`;
-    if (timeToMinutes(endValue) <= timeToMinutes(startValue)) {
-        showAlert("分段結束時間需晚於開始時間。");
-        return null;
-    }
-    return { startValue, endValue, storeId: storeEl.value };
-}
-
-function openShiftModal(el) {
-    clearCreateTarget();
-    setModalMode("edit");
-    document.getElementById("m-id").value = el.dataset.id;
-    document.getElementById("m-employee").innerText = el.dataset.employee;
-    document.getElementById("m-date").innerText = el.dataset.date;
-    document.getElementById("m-employee-id").value = el.dataset.employeeId || "";
-    document.getElementById("m-date-hidden").value = el.dataset.date;
-    setTimeSelects("m-start", el.dataset.start);
-    setTimeSelects("m-end", el.dataset.end);
-    manualBreakOverride = false;
-    const breakEl = document.getElementById("m-break");
-    if (breakEl) {
-        breakEl.value = el.dataset.breakMinutes || "0";
-    }
-    const noteEl = document.getElementById("m-note");
-    if (noteEl) {
-        noteEl.value = el.dataset.note || "";
-    }
-    const storeEl = document.getElementById("m-store");
-    if (storeEl) {
-        storeEl.value = el.dataset.storeId || "";
-    }
-    const splitStoreEl = document.getElementById("m-split-store");
-    if (splitStoreEl) {
-        splitStoreEl.value = el.dataset.storeId || "";
-    }
-    setTimeSelects("m-split-start", el.dataset.end);
-    setTimeSelects("m-split-end", addHoursToTime(el.dataset.end, 1));
-    if (splitToggle && splitSection) {
-        splitToggle.checked = false;
-        splitSection.classList.add("d-none");
-    }
-    hideAlert();
-    bootstrap.Modal.getOrCreateInstance(document.getElementById("shiftModal")).show();
-}
-
-function openCreateModal(payload) {
-    clearCreateTarget();
-    setModalMode("create");
-    document.getElementById("m-id").value = "";
-    document.getElementById("m-employee").innerText = payload.employeeName;
-    document.getElementById("m-date").innerText = payload.dateStr;
-    document.getElementById("m-employee-id").value = payload.employeeId;
-    document.getElementById("m-date-hidden").value = payload.dateStr;
-    setTimeSelects("m-start", payload.startValue);
-    setTimeSelects("m-end", payload.endValue);
-    manualBreakOverride = false;
-    updateBreakFromTimes();
-    const noteEl = document.getElementById("m-note");
-    if (noteEl) {
-        noteEl.value = "";
-    }
-    const storeEl = document.getElementById("m-store");
-    if (storeEl && storeEl.options.length) {
-        const firstReal = Array.from(storeEl.options).find((opt) => opt.value);
-        storeEl.value = firstReal ? firstReal.value : "";
-    }
-    const splitStoreEl = document.getElementById("m-split-store");
-    if (splitStoreEl) {
-        splitStoreEl.value = storeEl ? storeEl.value : "";
-    }
-    if (canManageStore && splitToggle && splitSection) {
-        splitToggle.checked = false;
-        splitSection.classList.add("d-none");
-    }
-    hideAlert();
-    bootstrap.Modal.getOrCreateInstance(document.getElementById("shiftModal")).show();
-}
-
-function showAlert(message) {
-    const alertBox = document.getElementById("shiftAlert");
-    if (!alertBox) return;
-    alertBox.textContent = message;
-    alertBox.classList.remove("d-none");
-}
-
-function showViewAlert(message) {
-    const alertBox = document.getElementById("shiftViewAlert");
-    if (!alertBox) return;
-    alertBox.textContent = message;
-    alertBox.classList.remove("d-none");
-}
-
-function hideAlert() {
-    const alertBox = document.getElementById("shiftAlert");
-    if (!alertBox) return;
-    alertBox.textContent = "";
-    alertBox.classList.add("d-none");
-}
-
-document.querySelectorAll(".shift-block, .shift-line").forEach(block => {
-    block.addEventListener("mouseenter", function() {
-        const grid = this.closest(".timeline-grid");
-        if (grid) {
-            grid.classList.add("no-grid-outline");
-        }
-        const cell = this.closest(".shift-cell");
-        if (cell) {
-            cell.classList.add("no-cell-outline");
-        }
-    });
-    block.addEventListener("mouseleave", function() {
-        const grid = this.closest(".timeline-grid");
-        if (grid) {
-            grid.classList.remove("no-grid-outline");
-        }
-        const cell = this.closest(".shift-cell");
-        if (cell) {
-            cell.classList.remove("no-cell-outline");
-        }
-    });
-    block.addEventListener("click", function(e) {
-        e.stopPropagation();
-        {% if employees and can_manage_store %}
-        if (employeeOrderActive) {
-            return;
-        }
-        {% endif %}
-        if (!canEditEmployee(this.dataset.employeeId)) {
-            return;
-        }
-        if (!canEditAssignedShift(this)) {
-            showViewAlert("店長排定班表不可修改");
-            return;
-        }
-        openShiftModal(this);
-    });
-});
-
-document.getElementById("deleteShiftBtn").addEventListener("click", function() {
-    fetch(shiftDeleteUrl, {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ id: document.getElementById("m-id").value })
-    })
-    .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || data.ok === false) {
-            throw new Error(data.error || "刪除失敗");
-        }
-        return data;
-    })
-    .then(() => {
-        const modalEl = document.getElementById("shiftModal");
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-        rememberScroll();
-        location.reload();
-    })
-    .catch((err) => showAlert(err.message || "刪除失敗，請稍後再試。"));
-});
-
-document.getElementById("updateShiftBtn").addEventListener("click", function() {
-    const timeValues = getTimeValues();
-    if (!timeValues) {
-        return;
-    }
-    const payload = {
-        id: document.getElementById("m-id").value,
-        start: timeValues.startValue,
-        end: timeValues.endValue,
-        break_minutes: getBreakValue(),
+            const weekScroll = document.querySelector(".week-scroll");
+            if (weekScroll && weekStored !== null) {
+                const top = parseInt(weekStored, 10);
+                if (!Number.isNaN(top)) {
+                    weekScroll.scrollTop = top;
+                }
+            }
+            const monthScroll = document.querySelector(".month-scroll");
+            if (monthScroll && monthStored !== null) {
+                const top = parseInt(monthStored, 10);
+                if (!Number.isNaN(top)) {
+                    monthScroll.scrollTop = top;
+                }
+            }
+        } catch (e) { }
     };
-    if (canManageStore) {
-        const storeId = getStoreValue();
-        if (!storeId) {
-            payload.store_id = null;
-        } else {
-            payload.store_id = storeId;
-        }
-        const splitValues = getSplitValues();
-        if (splitToggle && splitToggle.checked && !splitValues) {
-            return;
-        }
-        payload.split_start = splitValues ? splitValues.startValue : null;
-        payload.split_end = splitValues ? splitValues.endValue : null;
-        payload.split_store_id = splitValues ? splitValues.storeId : null;
-        const noteEl = document.getElementById("m-note");
-        if (noteEl) {
-            payload.note = noteEl.value.trim();
-        }
-    }
-    fetch(shiftUpdateUrl, {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    })
-    .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || data.ok === false) {
-            throw new Error(data.error || "更新失敗，請稍後再試。");
-        }
-        return data;
-    })
-    .then(() => {
-        const modalEl = document.getElementById("shiftModal");
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-        rememberScroll();
-        location.reload();
-    })
-    .catch((err) => showAlert(err.message || "更新失敗，請稍後再試。"));
-});
-
-document.getElementById("createShiftBtn").addEventListener("click", function() {
-    const timeValues = getTimeValues();
-    if (!timeValues) {
-        return;
-    }
-    const payload = {
-        employee_id: document.getElementById("m-employee-id").value,
-        date: document.getElementById("m-date-hidden").value,
-        start: timeValues.startValue,
-        end: timeValues.endValue,
-        break_minutes: getBreakValue(),
-    };
-    if (canManageStore) {
-        const storeId = getStoreValue();
-        if (!storeId) {
-            payload.store_id = null;
-        } else {
-            payload.store_id = storeId;
-        }
-        const noteEl = document.getElementById("m-note");
-        if (noteEl) {
-            payload.note = noteEl.value.trim();
-        }
-    }
-    fetch(shiftCreateUrl, {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    })
-    .then(async (r) => {
-        const data = await r.json().catch(() => ({}));
-        if (!r.ok || data.ok === false) {
-            throw new Error(data.error || "新增失敗，請稍後再試。");
-        }
-        return data;
-    })
-    .then(() => {
-        const modalEl = document.getElementById("shiftModal");
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-        rememberScroll();
-        location.reload();
-    })
-    .catch((err) => showAlert(err.message || "新增失敗，請稍後再試。"));
-});
-
-const defaultStart = "08:00";
-const defaultEnd = "08:15";
-
-const resolveEmployeeFromGrid = (grid) => {
-    const row = grid.closest(".timeline-row");
-    if (row) {
-        return {id: row.dataset.employeeId, name: row.dataset.employeeName};
-    }
-    const column = grid.closest(".timeline-employee-column");
-    if (column) {
-        return {id: column.dataset.employeeId, name: column.dataset.employeeName};
-    }
-    return null;
-};
-
-document.querySelectorAll(".timeline-grid").forEach(grid => {
-    grid.addEventListener("click", function(e) {
-        if (e.target.closest(".shift-block")) {
-            return;
-        }
-        {% if employees and can_manage_store %}
-        if (employeeOrderActive) {
-            return;
-        }
-        {% endif %}
-        const employee = resolveEmployeeFromGrid(this);
-        if (!employee || !employee.id) {
-            return;
-        }
-        if (!canEditEmployee(employee.id)) {
-            return;
-        }
-        setCreateTarget(this);
-        openCreateModal({
-            employeeName: employee.name,
-            employeeId: employee.id,
-            dateStr: this.dataset.date,
-            startValue: defaultStart,
-            endValue: defaultEnd
-        });
+    window.addEventListener("load", () => {
+        setTimeout(restoreScroll, 0);
     });
-});
-
-document.querySelectorAll(".shift-cell").forEach(cell => {
-    cell.addEventListener("click", function(e) {
-        if (e.target.closest(".shift-line")) {
-            return;
-        }
-        {% if employees and can_manage_store %}
-        if (employeeOrderActive) {
-            return;
-        }
-        {% endif %}
-        if (!canEditEmployee(this.dataset.employeeId)) {
-            return;
-        }
-        setCreateTarget(this);
-        openCreateModal({
-            employeeName: this.dataset.employeeName,
-            employeeId: this.dataset.employeeId,
-            dateStr: this.dataset.date,
-            startValue: defaultStart,
-            endValue: defaultEnd
-        });
-    });
-});
-
-const shiftModalEl = document.getElementById("shiftModal");
-if (shiftModalEl) {
-    shiftModalEl.addEventListener("hidden.bs.modal", () => {
-        clearCreateTarget();
-    });
-}
-{% endif %}
-
-const dateInput = document.getElementById("dateInput");
-if (dateInput) {
-    const syncDateInputFromUrl = () => {
-        const params = new URLSearchParams(window.location.search);
-        const urlDate = params.get("date");
-        if (urlDate) {
-            dateInput.value = urlDate;
-        }
-    };
-    syncDateInputFromUrl();
-    window.addEventListener("popstate", syncDateInputFromUrl);
-    window.addEventListener("pageshow", syncDateInputFromUrl);
-    dateInput.addEventListener("change", function() {
-        this.form.submit();
-    });
-}
-
-const showEmptyRowsInput = document.getElementById("showEmptyRows");
-if (showEmptyRowsInput) {
-    showEmptyRowsInput.addEventListener("change", function() {
-        this.form.submit();
-    });
-}
-
-const monthInput = document.getElementById("monthInput");
-if (monthInput) {
-    const syncMonthInputFromUrl = () => {
-        const params = new URLSearchParams(window.location.search);
-        const urlMonth = params.get("month");
-        if (urlMonth) {
-            monthInput.value = urlMonth;
-        }
-    };
-    syncMonthInputFromUrl();
-    window.addEventListener("popstate", syncMonthInputFromUrl);
-    window.addEventListener("pageshow", syncMonthInputFromUrl);
-    monthInput.addEventListener("change", function() {
-        this.form.submit();
-    });
-}
-
-const storeInputs = document.querySelectorAll("input[name=\"store\"]");
-const selectAllInput = document.getElementById("storeSelectAll");
-const employeeInputs = document.querySelectorAll("input[name=\"employee_filter\"]");
-const employeeSelectAll = document.getElementById("employeeSelectAll");
-const employeeFilterInput = document.getElementById("employeeFilterInput");
-const storeFilterKey = "timelineStoreFilter";
-const employeeFilterKey = "timelineEmployeeFilter";
-const readStoreFilter = () => {
-    try {
-        const raw = sessionStorage.getItem(storeFilterKey);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : null;
-    } catch (err) {
-        return null;
-    }
-};
-const readEmployeeFilter = () => {
-    try {
-        const raw = sessionStorage.getItem(employeeFilterKey);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : null;
-    } catch (err) {
-        return null;
-    }
-};
-const persistStoreFilter = () => {
-    const values = Array.from(storeInputs)
-        .filter((input) => input.checked)
-        .map((input) => input.value);
-    sessionStorage.setItem(storeFilterKey, JSON.stringify(values));
-};
-const persistEmployeeFilter = () => {
-    const values = Array.from(employeeInputs)
-        .filter((input) => input.checked)
-        .map((input) => input.value);
-    sessionStorage.setItem(employeeFilterKey, JSON.stringify(values));
-};
-const updateShiftCellHeights = () => {
-    document.querySelectorAll(".shift-cell").forEach((cell) => {
-        const visibleCount = Array.from(cell.querySelectorAll(".shift-line"))
-            .filter((line) => !line.classList.contains("d-none"))
-            .length;
-        cell.classList.toggle("shift-cell-expand", visibleCount > 2);
-    });
-};
-const applyStoreFilter = () => {
-    const values = Array.from(storeInputs)
-        .filter((input) => input.checked)
-        .map((input) => input.value);
-    const showAll = values.length === 0;
-    const allowUnassigned = values.includes("unassigned");
-    const storeSet = new Set(values.filter((v) => v !== "unassigned"));
-    const employeeValues = Array.from(employeeInputs)
-        .filter((input) => input.checked)
-        .map((input) => input.value);
-    const showAllEmployees = employeeInputs.length === 0 || employeeValues.length === 0;
-    const employeeSet = new Set(employeeValues);
-
-    document.querySelectorAll(".shift-block, .shift-line").forEach((el) => {
+    const canEditAssignedShift = (el) => {
+        if (canManageStore) return true;
         const storeId = (el.dataset.storeId || "").trim().toLowerCase();
         const storeName = (el.dataset.storeName || "").trim();
-        const isUnassigned = !storeName && (!storeId || storeId === "none" || storeId === "null" || storeId === "0");
-        const employeeId = (el.dataset.employeeId || "").trim();
-        const employeeMatch = showAllEmployees || employeeSet.has(employeeId);
-        const match = employeeMatch && (showAll
-            || (!isUnassigned && storeSet.has(storeId))
-            || (isUnassigned && allowUnassigned));
-        el.classList.toggle("d-none", !match);
-    });
-
-    document.querySelectorAll(".shift-cell").forEach((cell) => {
-        const visible = cell.querySelector(".shift-line:not(.d-none)");
-        let placeholder = cell.querySelector(".row-empty");
-        if (!visible) {
-            if (!placeholder) {
-                placeholder = document.createElement("span");
-                placeholder.className = "row-empty";
-                placeholder.textContent = "—";
-                cell.appendChild(placeholder);
-            }
-            placeholder.classList.remove("d-none");
-        } else if (placeholder) {
-            placeholder.classList.add("d-none");
-        }
-    });
-
-    document.querySelectorAll(".timeline-employee-grid").forEach((grid) => {
-        const visible = grid.querySelector(".shift-block:not(.d-none)");
-        let placeholder = grid.querySelector(".row-empty");
-        if (!visible) {
-            if (!placeholder) {
-                placeholder = document.createElement("span");
-                placeholder.className = "row-empty";
-                placeholder.textContent = "—";
-                grid.appendChild(placeholder);
-            }
-            placeholder.classList.remove("d-none");
-        } else if (placeholder) {
-            placeholder.classList.add("d-none");
-        }
-    });
-
-    const allowEmptyRows = showEmptyRowsInput && showEmptyRowsInput.checked;
-    const applyRowVisibility = (row, selector) => {
-        const employeeId = (row.dataset.employeeId || "").trim();
-        if (allowedEmployeeId && employeeId && String(employeeId) === String(allowedEmployeeId)) {
-            row.classList.remove("d-none");
-            return;
-        }
-        const employeeMatch = showAllEmployees || !employeeId || employeeSet.has(employeeId);
-        if (!employeeMatch) {
-            row.classList.add("d-none");
-            return;
-        }
-        if (allowEmptyRows) {
-            row.classList.remove("d-none");
-            return;
-        }
-        const visible = row.querySelector(selector);
-        row.classList.toggle("d-none", !visible);
+        if (storeName) return false;
+        return !storeId || storeId === "none" || storeId === "null" || storeId === "0";
     };
-    document.querySelectorAll(".timeline-row").forEach((row) => {
-        applyRowVisibility(row, ".shift-block:not(.d-none), .shift-line:not(.d-none)");
-    });
-    document.querySelectorAll(".timeline-employee-column").forEach((column) => {
-        applyRowVisibility(column, ".shift-block:not(.d-none)");
-    });
-    document.querySelectorAll(".week-table tbody tr, .month-table tbody tr").forEach((row) => {
-        applyRowVisibility(row, ".shift-line:not(.d-none)");
-    });
-
-    updateShiftCellHeights();
-    const verticalContainer = document.querySelector(".timeline-vertical");
-    if (verticalContainer) {
-        const visibleColumns = Array.from(document.querySelectorAll(".timeline-employee-column"))
-            .filter((column) => !column.classList.contains("d-none"))
-            .length;
-        verticalContainer.style.setProperty("--timeline-employee-columns", String(Math.max(visibleColumns, 1)));
+    let activeCreateTarget = null;
+    const setCreateTarget = (el) => {
+        if (activeCreateTarget) {
+            activeCreateTarget.classList.remove("create-target");
+        }
+        activeCreateTarget = el || null;
+        if (activeCreateTarget) {
+            activeCreateTarget.classList.add("create-target");
+        }
+    };
+    const clearCreateTarget = () => {
+        if (activeCreateTarget) {
+            activeCreateTarget.classList.remove("create-target");
+            activeCreateTarget = null;
+        }
+    };
+    const canEditEmployee = (employeeId) => {
+        if (!canEditOwnOnly) return true;
+        if (!allowedEmployeeId) return false;
+        return String(employeeId) === String(allowedEmployeeId);
+    };
+    {% if not read_only %}
+    function buildTimeOptions(selectEl) {
+        const pad = (value) => String(value).padStart(2, "0");
+        selectEl.innerHTML = "";
+        for (let hour = 8; hour <= 23; hour += 1) {
+            const label = pad(hour);
+            const opt = document.createElement("option");
+            opt.value = label;
+            opt.textContent = label;
+            selectEl.appendChild(opt);
+        }
     }
-};
 
-if (storeInputs.length) {
-    const storedValues = readStoreFilter();
-    if (storedValues) {
-        storeInputs.forEach((input) => {
-            input.checked = storedValues.includes(input.value);
+    function buildMinuteOptions(selectEl) {
+        selectEl.innerHTML = "";
+        ["00", "15", "30", "45"].forEach((minute) => {
+            const opt = document.createElement("option");
+            opt.value = minute;
+            opt.textContent = minute;
+            selectEl.appendChild(opt);
         });
     }
-    const updateSelectAll = () => {
-        if (!selectAllInput) return;
-        const checkedCount = document.querySelectorAll("input[name=\"store\"]:checked").length;
-        if (checkedCount === 0) {
-            selectAllInput.checked = true;
-            selectAllInput.indeterminate = false;
+
+    function buildBreakOptions(selectEl) {
+        selectEl.innerHTML = "";
+        [0, 30, 60, 90, 120].forEach((minutes) => {
+            const opt = document.createElement("option");
+            const hours = String(Math.floor(minutes / 60)).padStart(2, "0");
+            const mins = String(minutes % 60).padStart(2, "0");
+            opt.value = String(minutes);
+            opt.textContent = `${hours}:${mins}`;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    buildTimeOptions(document.getElementById("m-start-hour"));
+    buildTimeOptions(document.getElementById("m-end-hour"));
+    buildMinuteOptions(document.getElementById("m-start-minute"));
+    buildMinuteOptions(document.getElementById("m-end-minute"));
+    const breakSelect = document.getElementById("m-break");
+    if (breakSelect) {
+        buildBreakOptions(breakSelect);
+        breakSelect.addEventListener("change", () => {
+            manualBreakOverride = true;
+        });
+    }
+    ["m-start-hour", "m-start-minute", "m-end-hour", "m-end-minute"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("change", updateBreakFromTimes);
+        }
+    });
+    if (canManageStore) {
+        buildTimeOptions(document.getElementById("m-split-start-hour"));
+        buildTimeOptions(document.getElementById("m-split-end-hour"));
+        buildMinuteOptions(document.getElementById("m-split-start-minute"));
+        buildMinuteOptions(document.getElementById("m-split-end-minute"));
+    }
+
+    const splitToggle = document.getElementById("m-split-toggle");
+    const splitSection = document.getElementById("m-split-section");
+    if (canManageStore && splitToggle && splitSection) {
+        splitToggle.addEventListener("change", () => {
+            splitSection.classList.toggle("d-none", !splitToggle.checked);
+        });
+    }
+
+    function setModalMode(mode) {
+        const deleteBtn = document.getElementById("deleteShiftBtn");
+        const updateBtn = document.getElementById("updateShiftBtn");
+        const createBtn = document.getElementById("createShiftBtn");
+        const titleEl = document.getElementById("shiftModalTitle");
+        hideAlert();
+
+        if (mode === "create") {
+            deleteBtn.classList.add("d-none");
+            updateBtn.classList.add("d-none");
+            createBtn.classList.remove("d-none");
+            titleEl.textContent = "新增班表";
             return;
         }
-        if (checkedCount === storeInputs.length) {
-            selectAllInput.checked = true;
-            selectAllInput.indeterminate = false;
+
+        deleteBtn.classList.remove("d-none");
+        updateBtn.classList.remove("d-none");
+        createBtn.classList.add("d-none");
+        titleEl.textContent = "排班資訊";
+    }
+
+    function timeToMinutes(timeStr) {
+        const [h, m] = timeStr.split(":").map(Number);
+        return (h * 60) + m;
+    }
+
+    function addHoursToTime(timeStr, hoursToAdd = 1) {
+        const total = timeToMinutes(timeStr) + (hoursToAdd * 60);
+        const minutes = ((total % (24 * 60)) + (24 * 60)) % (24 * 60);
+        const h = String(Math.floor(minutes / 60)).padStart(2, "0");
+        const m = String(minutes % 60).padStart(2, "0");
+        return `${h}:${m}`;
+    }
+
+    function setTimeSelects(prefix, timeStr) {
+        const [hour, minute] = timeStr.split(":");
+        const hourEl = document.getElementById(`${prefix}-hour`);
+        const minuteEl = document.getElementById(`${prefix}-minute`);
+        if (!hourEl || !minuteEl) {
             return;
         }
-        selectAllInput.checked = false;
-        selectAllInput.indeterminate = true;
+        hourEl.value = hour;
+        minuteEl.value = minute;
+    }
+
+    function getTimeValues() {
+        const startHour = document.getElementById("m-start-hour").value;
+        const startMinute = document.getElementById("m-start-minute").value;
+        const endHour = document.getElementById("m-end-hour").value;
+        const endMinute = document.getElementById("m-end-minute").value;
+        if (!startHour || !startMinute || !endHour || !endMinute) {
+            showAlert("請選擇開始與結束時間。");
+            return null;
+        }
+        const startValue = `${startHour}:${startMinute}`;
+        const endValue = `${endHour}:${endMinute}`;
+        if (timeToMinutes(endValue) <= timeToMinutes(startValue)) {
+            showAlert("結束時間需晚於開始時間。");
+            return null;
+        }
+        return { startValue, endValue };
+    }
+
+    function getBreakValue() {
+        const breakEl = document.getElementById("m-break");
+        if (!breakEl) {
+            return 0;
+        }
+        const value = parseInt(breakEl.value || "0", 10);
+        return Number.isNaN(value) ? 0 : value;
+    }
+
+    function getDefaultBreakMinutes(startValue, endValue) {
+        const duration = timeToMinutes(endValue) - timeToMinutes(startValue);
+        if (duration <= 0 || !Array.isArray(breakRules)) {
+            return 0;
+        }
+        let result = 0;
+        breakRules.forEach((rule) => {
+            const threshold = Number(rule.min_hours) * 60;
+            const minutes = Number(rule.break_minutes);
+            if (!Number.isNaN(threshold) && !Number.isNaN(minutes) && duration >= threshold) {
+                result = Math.max(result, minutes);
+            }
+        });
+        return result;
+    }
+
+    let manualBreakOverride = false;
+
+    function updateBreakFromTimes() {
+        const breakEl = document.getElementById("m-break");
+        if (!breakEl) {
+            return;
+        }
+        if (manualBreakOverride) {
+            return;
+        }
+        const startHour = document.getElementById("m-start-hour").value;
+        const startMinute = document.getElementById("m-start-minute").value;
+        const endHour = document.getElementById("m-end-hour").value;
+        const endMinute = document.getElementById("m-end-minute").value;
+        if (!startHour || !startMinute || !endHour || !endMinute) {
+            breakEl.value = "0";
+            return;
+        }
+        const startValue = `${startHour}:${startMinute}`;
+        const endValue = `${endHour}:${endMinute}`;
+        breakEl.value = String(getDefaultBreakMinutes(startValue, endValue));
+    }
+
+    function getStoreValue() {
+        if (!canManageStore) {
+            return null;
+        }
+        const storeEl = document.getElementById("m-store");
+        if (!storeEl) {
+            showAlert("請選擇店別。");
+            return null;
+        }
+        return storeEl.value;
+    }
+
+    function getSplitValues() {
+        if (!canManageStore || !splitToggle || !splitToggle.checked) {
+            return null;
+        }
+        const startHour = document.getElementById("m-split-start-hour").value;
+        const startMinute = document.getElementById("m-split-start-minute").value;
+        const endHour = document.getElementById("m-split-end-hour").value;
+        const endMinute = document.getElementById("m-split-end-minute").value;
+        const storeEl = document.getElementById("m-split-store");
+        if (!startHour || !startMinute || !endHour || !endMinute || !storeEl || !storeEl.value) {
+            showAlert("請填寫分段時間與店別。");
+            return null;
+        }
+        const startValue = `${startHour}:${startMinute}`;
+        const endValue = `${endHour}:${endMinute}`;
+        if (timeToMinutes(endValue) <= timeToMinutes(startValue)) {
+            showAlert("分段結束時間需晚於開始時間。");
+            return null;
+        }
+        return { startValue, endValue, storeId: storeEl.value };
+    }
+
+    function openShiftModal(el) {
+        clearCreateTarget();
+        setModalMode("edit");
+        document.getElementById("m-id").value = el.dataset.id;
+        document.getElementById("m-employee").innerText = el.dataset.employee;
+        document.getElementById("m-date").innerText = el.dataset.date;
+        document.getElementById("m-employee-id").value = el.dataset.employeeId || "";
+        document.getElementById("m-date-hidden").value = el.dataset.date;
+        setTimeSelects("m-start", el.dataset.start);
+        setTimeSelects("m-end", el.dataset.end);
+        manualBreakOverride = false;
+        const breakEl = document.getElementById("m-break");
+        if (breakEl) {
+            breakEl.value = el.dataset.breakMinutes || "0";
+        }
+        const noteEl = document.getElementById("m-note");
+        if (noteEl) {
+            noteEl.value = el.dataset.note || "";
+        }
+        const storeEl = document.getElementById("m-store");
+        if (storeEl) {
+            storeEl.value = el.dataset.storeId || "";
+        }
+        const splitStoreEl = document.getElementById("m-split-store");
+        if (splitStoreEl) {
+            splitStoreEl.value = el.dataset.storeId || "";
+        }
+        setTimeSelects("m-split-start", el.dataset.end);
+        setTimeSelects("m-split-end", addHoursToTime(el.dataset.end, 1));
+        if (splitToggle && splitSection) {
+            splitToggle.checked = false;
+            splitSection.classList.add("d-none");
+        }
+        hideAlert();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById("shiftModal")).show();
+    }
+
+    function openCreateModal(payload) {
+        clearCreateTarget();
+        setModalMode("create");
+        document.getElementById("m-id").value = "";
+        document.getElementById("m-employee").innerText = payload.employeeName;
+        document.getElementById("m-date").innerText = payload.dateStr;
+        document.getElementById("m-employee-id").value = payload.employeeId;
+        document.getElementById("m-date-hidden").value = payload.dateStr;
+        setTimeSelects("m-start", payload.startValue);
+        setTimeSelects("m-end", payload.endValue);
+        manualBreakOverride = false;
+        updateBreakFromTimes();
+        const noteEl = document.getElementById("m-note");
+        if (noteEl) {
+            noteEl.value = "";
+        }
+        const storeEl = document.getElementById("m-store");
+        if (storeEl && storeEl.options.length) {
+            const firstReal = Array.from(storeEl.options).find((opt) => opt.value);
+            storeEl.value = firstReal ? firstReal.value : "";
+        }
+        const splitStoreEl = document.getElementById("m-split-store");
+        if (splitStoreEl) {
+            splitStoreEl.value = storeEl ? storeEl.value : "";
+        }
+        if (canManageStore && splitToggle && splitSection) {
+            splitToggle.checked = false;
+            splitSection.classList.add("d-none");
+        }
+        hideAlert();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById("shiftModal")).show();
+    }
+
+    function showAlert(message) {
+        const alertBox = document.getElementById("shiftAlert");
+        if (!alertBox) return;
+        alertBox.textContent = message;
+        alertBox.classList.remove("d-none");
+    }
+
+    function showViewAlert(message) {
+        const alertBox = document.getElementById("shiftViewAlert");
+        if (!alertBox) return;
+        alertBox.textContent = message;
+        alertBox.classList.remove("d-none");
+    }
+
+    function hideAlert() {
+        const alertBox = document.getElementById("shiftAlert");
+        if (!alertBox) return;
+        alertBox.textContent = "";
+        alertBox.classList.add("d-none");
+    }
+
+    document.querySelectorAll(".shift-block, .shift-line").forEach(block => {
+        block.addEventListener("mouseenter", function () {
+            const grid = this.closest(".timeline-grid");
+            if (grid) {
+                grid.classList.add("no-grid-outline");
+            }
+            const cell = this.closest(".shift-cell");
+            if (cell) {
+                cell.classList.add("no-cell-outline");
+            }
+        });
+        block.addEventListener("mouseleave", function () {
+            const grid = this.closest(".timeline-grid");
+            if (grid) {
+                grid.classList.remove("no-grid-outline");
+            }
+            const cell = this.closest(".shift-cell");
+            if (cell) {
+                cell.classList.remove("no-cell-outline");
+            }
+        });
+        block.addEventListener("click", function (e) {
+            e.stopPropagation();
+            {% if employees and can_manage_store %}
+            if (employeeOrderActive) {
+                return;
+            }
+            {% endif %}
+            if (!canEditEmployee(this.dataset.employeeId)) {
+                return;
+            }
+            if (!canEditAssignedShift(this)) {
+                showViewAlert("店長排定班表不可修改");
+                return;
+            }
+            openShiftModal(this);
+        });
+    });
+
+    document.getElementById("deleteShiftBtn").addEventListener("click", function () {
+        fetch(shiftDeleteUrl, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: document.getElementById("m-id").value })
+        })
+            .then(async (r) => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || data.ok === false) {
+                    throw new Error(data.error || "刪除失敗");
+                }
+                return data;
+            })
+            .then(() => {
+                const modalEl = document.getElementById("shiftModal");
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                rememberScroll();
+                location.reload();
+            })
+            .catch((err) => showAlert(err.message || "刪除失敗，請稍後再試。"));
+    });
+
+    document.getElementById("updateShiftBtn").addEventListener("click", function () {
+        const timeValues = getTimeValues();
+        if (!timeValues) {
+            return;
+        }
+        const payload = {
+            id: document.getElementById("m-id").value,
+            start: timeValues.startValue,
+            end: timeValues.endValue,
+            break_minutes: getBreakValue(),
+        };
+        if (canManageStore) {
+            const storeId = getStoreValue();
+            if (!storeId) {
+                payload.store_id = null;
+            } else {
+                payload.store_id = storeId;
+            }
+            const splitValues = getSplitValues();
+            if (splitToggle && splitToggle.checked && !splitValues) {
+                return;
+            }
+            payload.split_start = splitValues ? splitValues.startValue : null;
+            payload.split_end = splitValues ? splitValues.endValue : null;
+            payload.split_store_id = splitValues ? splitValues.storeId : null;
+            const noteEl = document.getElementById("m-note");
+            if (noteEl) {
+                payload.note = noteEl.value.trim();
+            }
+        }
+        fetch(shiftUpdateUrl, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(async (r) => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || data.ok === false) {
+                    throw new Error(data.error || "更新失敗，請稍後再試。");
+                }
+                return data;
+            })
+            .then(() => {
+                const modalEl = document.getElementById("shiftModal");
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                rememberScroll();
+                location.reload();
+            })
+            .catch((err) => showAlert(err.message || "更新失敗，請稍後再試。"));
+    });
+
+    document.getElementById("createShiftBtn").addEventListener("click", function () {
+        const timeValues = getTimeValues();
+        if (!timeValues) {
+            return;
+        }
+        const payload = {
+            employee_id: document.getElementById("m-employee-id").value,
+            date: document.getElementById("m-date-hidden").value,
+            start: timeValues.startValue,
+            end: timeValues.endValue,
+            break_minutes: getBreakValue(),
+        };
+        if (canManageStore) {
+            const storeId = getStoreValue();
+            if (!storeId) {
+                payload.store_id = null;
+            } else {
+                payload.store_id = storeId;
+            }
+            const noteEl = document.getElementById("m-note");
+            if (noteEl) {
+                payload.note = noteEl.value.trim();
+            }
+        }
+        fetch(shiftCreateUrl, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+            .then(async (r) => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || data.ok === false) {
+                    throw new Error(data.error || "新增失敗，請稍後再試。");
+                }
+                return data;
+            })
+            .then(() => {
+                const modalEl = document.getElementById("shiftModal");
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                rememberScroll();
+                location.reload();
+            })
+            .catch((err) => showAlert(err.message || "新增失敗，請稍後再試。"));
+    });
+
+    const defaultStart = "08:00";
+    const defaultEnd = "08:15";
+
+    const resolveEmployeeFromGrid = (grid) => {
+        const row = grid.closest(".timeline-row");
+        if (row) {
+            return { id: row.dataset.employeeId, name: row.dataset.employeeName };
+        }
+        const column = grid.closest(".timeline-employee-column");
+        if (column) {
+            return { id: column.dataset.employeeId, name: column.dataset.employeeName };
+        }
+        return null;
     };
-    updateSelectAll();
-    applyStoreFilter();
-    updateShiftCellHeights();
-    persistStoreFilter();
-    storeInputs.forEach((input) => {
-        input.addEventListener("change", function() {
-            updateSelectAll();
+
+    document.querySelectorAll(".timeline-grid").forEach(grid => {
+        grid.addEventListener("click", function (e) {
+            if (e.target.closest(".shift-block")) {
+                return;
+            }
+            {% if employees and can_manage_store %}
+            if (employeeOrderActive) {
+                return;
+            }
+            {% endif %}
+            const employee = resolveEmployeeFromGrid(this);
+            if (!employee || !employee.id) {
+                return;
+            }
+            if (!canEditEmployee(employee.id)) {
+                return;
+            }
+            setCreateTarget(this);
+            openCreateModal({
+                employeeName: employee.name,
+                employeeId: employee.id,
+                dateStr: this.dataset.date,
+                startValue: defaultStart,
+                endValue: defaultEnd
+            });
+        });
+    });
+
+    document.querySelectorAll(".shift-cell").forEach(cell => {
+        cell.addEventListener("click", function (e) {
+            if (e.target.closest(".shift-line")) {
+                return;
+            }
+            {% if employees and can_manage_store %}
+            if (employeeOrderActive) {
+                return;
+            }
+            {% endif %}
+            if (!canEditEmployee(this.dataset.employeeId)) {
+                return;
+            }
+            setCreateTarget(this);
+            openCreateModal({
+                employeeName: this.dataset.employeeName,
+                employeeId: this.dataset.employeeId,
+                dateStr: this.dataset.date,
+                startValue: defaultStart,
+                endValue: defaultEnd
+            });
+        });
+    });
+
+    const shiftModalEl = document.getElementById("shiftModal");
+    if (shiftModalEl) {
+        shiftModalEl.addEventListener("hidden.bs.modal", () => {
+            clearCreateTarget();
+        });
+    }
+    {% endif %}
+
+    const dateInput = document.getElementById("dateInput");
+    if (dateInput) {
+        const syncDateInputFromUrl = () => {
+            const params = new URLSearchParams(window.location.search);
+            const urlDate = params.get("date");
+            if (urlDate) {
+                dateInput.value = urlDate;
+            }
+        };
+        syncDateInputFromUrl();
+        window.addEventListener("popstate", syncDateInputFromUrl);
+        window.addEventListener("pageshow", syncDateInputFromUrl);
+        dateInput.addEventListener("change", function () {
+            this.form.submit();
+        });
+    }
+
+    const showEmptyRowsInput = document.getElementById("showEmptyRows");
+    const showEmptyKey = "timelineShowEmpty";
+    const persistShowEmpty = () => {
+        if (!showEmptyRowsInput) return;
+        sessionStorage.setItem(showEmptyKey, showEmptyRowsInput.checked ? "1" : "0");
+    };
+
+    if (showEmptyRowsInput) {
+        const storedShowEmpty = sessionStorage.getItem(showEmptyKey);
+        if (storedShowEmpty) {
+            showEmptyRowsInput.checked = storedShowEmpty === "1";
+        }
+
+        showEmptyRowsInput.addEventListener("change", function () {
             applyStoreFilter();
-            persistStoreFilter();
+            persistShowEmpty();
         });
-    });
-    if (selectAllInput) {
-        selectAllInput.addEventListener("change", function() {
+    }
+
+    const monthInput = document.getElementById("monthInput");
+    if (monthInput) {
+        const syncMonthInputFromUrl = () => {
+            const params = new URLSearchParams(window.location.search);
+            const urlMonth = params.get("month");
+            if (urlMonth) {
+                monthInput.value = urlMonth;
+            }
+        };
+        syncMonthInputFromUrl();
+        window.addEventListener("popstate", syncMonthInputFromUrl);
+        window.addEventListener("pageshow", syncMonthInputFromUrl);
+        monthInput.addEventListener("change", function () {
+            this.form.submit();
+        });
+    }
+
+    const storeInputs = document.querySelectorAll("input[name=\"store\"]");
+    const selectAllInput = document.getElementById("storeSelectAll");
+    const employeeInputs = document.querySelectorAll("input[name=\"employee_filter\"]");
+    const employeeSelectAll = document.getElementById("employeeSelectAll");
+    const employeeFilterInput = document.getElementById("employeeFilterInput");
+    const storeFilterKey = "timelineStoreFilter";
+    const employeeFilterKey = "timelineEmployeeFilter";
+    const readStoreFilter = () => {
+        try {
+            const raw = sessionStorage.getItem(storeFilterKey);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (err) {
+            return null;
+        }
+    };
+    const readEmployeeFilter = () => {
+        try {
+            const raw = sessionStorage.getItem(employeeFilterKey);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (err) {
+            return null;
+        }
+    };
+    const persistStoreFilter = () => {
+        const values = Array.from(storeInputs)
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+        sessionStorage.setItem(storeFilterKey, JSON.stringify(values));
+    };
+    const persistEmployeeFilter = () => {
+        const values = Array.from(employeeInputs)
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+        sessionStorage.setItem(employeeFilterKey, JSON.stringify(values));
+    };
+    const updateShiftCellHeights = () => {
+        document.querySelectorAll(".shift-cell").forEach((cell) => {
+            const visibleCount = Array.from(cell.querySelectorAll(".shift-line"))
+                .filter((line) => !line.classList.contains("d-none"))
+                .length;
+            cell.classList.toggle("shift-cell-expand", visibleCount > 2);
+        });
+    };
+    const applyStoreFilter = () => {
+        const values = Array.from(storeInputs)
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+        const showAll = values.length === 0;
+        const allowUnassigned = values.includes("unassigned");
+        const storeSet = new Set(values.filter((v) => v !== "unassigned"));
+        const employeeValues = Array.from(employeeInputs)
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+        const showAllEmployees = employeeInputs.length === 0 || employeeValues.length === 0;
+        const employeeSet = new Set(employeeValues);
+
+        document.querySelectorAll(".shift-block, .shift-line").forEach((el) => {
+            const storeId = (el.dataset.storeId || "").trim().toLowerCase();
+            const storeName = (el.dataset.storeName || "").trim();
+            const isUnassigned = !storeName && (!storeId || storeId === "none" || storeId === "null" || storeId === "0");
+            const employeeId = (el.dataset.employeeId || "").trim();
+            const employeeMatch = showAllEmployees || employeeSet.has(employeeId);
+            const match = employeeMatch && (showAll
+                || (!isUnassigned && storeSet.has(storeId))
+                || (isUnassigned && allowUnassigned));
+            el.classList.toggle("d-none", !match);
+        });
+
+        document.querySelectorAll(".shift-cell").forEach((cell) => {
+            const visible = cell.querySelector(".shift-line:not(.d-none)");
+            let placeholder = cell.querySelector(".row-empty");
+            if (!visible) {
+                if (!placeholder) {
+                    placeholder = document.createElement("span");
+                    placeholder.className = "row-empty";
+                    placeholder.textContent = "—";
+                    cell.appendChild(placeholder);
+                }
+                placeholder.classList.remove("d-none");
+            } else if (placeholder) {
+                placeholder.classList.add("d-none");
+            }
+        });
+
+        document.querySelectorAll(".timeline-employee-grid").forEach((grid) => {
+            const visible = grid.querySelector(".shift-block:not(.d-none)");
+            let placeholder = grid.querySelector(".row-empty");
+            if (!visible) {
+                if (!placeholder) {
+                    placeholder = document.createElement("span");
+                    placeholder.className = "row-empty";
+                    placeholder.textContent = "—";
+                    grid.appendChild(placeholder);
+                }
+                placeholder.classList.remove("d-none");
+            } else if (placeholder) {
+                placeholder.classList.add("d-none");
+            }
+        });
+
+        const allowEmptyRows = showEmptyRowsInput && showEmptyRowsInput.checked;
+        const applyRowVisibility = (row, selector) => {
+            const employeeId = (row.dataset.employeeId || "").trim();
+            if (allowedEmployeeId && employeeId && String(employeeId) === String(allowedEmployeeId)) {
+                row.classList.remove("d-none");
+                return;
+            }
+            const employeeMatch = showAllEmployees || !employeeId || employeeSet.has(employeeId);
+            if (!employeeMatch) {
+                row.classList.add("d-none");
+                return;
+            }
+            if (allowEmptyRows) {
+                row.classList.remove("d-none");
+                return;
+            }
+            const visible = row.querySelector(selector);
+            row.classList.toggle("d-none", !visible);
+        };
+        document.querySelectorAll(".timeline-row").forEach((row) => {
+            applyRowVisibility(row, ".shift-block:not(.d-none), .shift-line:not(.d-none)");
+        });
+        document.querySelectorAll(".timeline-employee-column").forEach((column) => {
+            applyRowVisibility(column, ".shift-block:not(.d-none)");
+        });
+        document.querySelectorAll(".week-table tbody tr, .month-table tbody tr").forEach((row) => {
+            applyRowVisibility(row, ".shift-line:not(.d-none)");
+        });
+
+        updateShiftCellHeights();
+        const verticalContainer = document.querySelector(".timeline-vertical");
+        if (verticalContainer) {
+            const visibleColumns = Array.from(document.querySelectorAll(".timeline-employee-column"))
+                .filter((column) => !column.classList.contains("d-none"))
+                .length;
+            verticalContainer.style.setProperty("--timeline-employee-columns", String(Math.max(visibleColumns, 1)));
+        }
+    };
+
+    if (storeInputs.length) {
+        const storedValues = readStoreFilter();
+        if (storedValues) {
             storeInputs.forEach((input) => {
-                input.checked = selectAllInput.checked;
+                input.checked = storedValues.includes(input.value);
             });
-            updateSelectAll();
-            applyStoreFilter();
-            persistStoreFilter();
-        });
-    }
-}
-
-updateShiftCellHeights();
-
-if (employeeInputs.length) {
-    const storedValues = readEmployeeFilter();
-    if (storedValues) {
-        employeeInputs.forEach((input) => {
-            input.checked = storedValues.includes(input.value);
-        });
-    }
-    const applyEmployeeSearch = () => {
-        const keyword = (employeeFilterInput ? employeeFilterInput.value : "").trim().toLowerCase();
-        employeeInputs.forEach((input) => {
-            const label = input.nextElementSibling;
-            const text = (label ? label.textContent : "").trim().toLowerCase();
-            const match = !keyword || text.includes(keyword);
-            const wrapper = input.closest(".form-check");
-            if (wrapper) {
-                wrapper.classList.toggle("d-none", !match);
+        }
+        const updateSelectAll = () => {
+            if (!selectAllInput) return;
+            const checkedCount = document.querySelectorAll("input[name=\"store\"]:checked").length;
+            if (checkedCount === 0) {
+                selectAllInput.checked = true;
+                selectAllInput.indeterminate = false;
+                return;
             }
+            if (checkedCount === storeInputs.length) {
+                selectAllInput.checked = true;
+                selectAllInput.indeterminate = false;
+                return;
+            }
+            selectAllInput.checked = false;
+            selectAllInput.indeterminate = true;
+        };
+        updateSelectAll();
+        applyStoreFilter();
+        updateShiftCellHeights();
+        persistStoreFilter();
+        storeInputs.forEach((input) => {
+            input.addEventListener("change", function () {
+                updateSelectAll();
+                applyStoreFilter();
+                persistStoreFilter();
+            });
         });
-    };
-    const updateEmployeeSelectAll = () => {
-        if (!employeeSelectAll) return;
-        const checkedCount = document.querySelectorAll("input[name=\"employee_filter\"]:checked").length;
-        if (checkedCount === 0) {
-            employeeSelectAll.checked = true;
-            employeeSelectAll.indeterminate = false;
-            return;
+        if (selectAllInput) {
+            selectAllInput.addEventListener("change", function () {
+                storeInputs.forEach((input) => {
+                    input.checked = selectAllInput.checked;
+                });
+                updateSelectAll();
+                applyStoreFilter();
+                persistStoreFilter();
+            });
         }
-        if (checkedCount === employeeInputs.length) {
-            employeeSelectAll.checked = true;
-            employeeSelectAll.indeterminate = false;
-            return;
-        }
-        employeeSelectAll.checked = false;
-        employeeSelectAll.indeterminate = true;
-    };
-    updateEmployeeSelectAll();
-    applyStoreFilter();
-    persistEmployeeFilter();
-    employeeInputs.forEach((input) => {
-        input.addEventListener("change", function() {
-            updateEmployeeSelectAll();
-            applyStoreFilter();
-            persistEmployeeFilter();
-        });
-    });
-    if (employeeSelectAll) {
-        employeeSelectAll.addEventListener("change", function() {
+    }
+
+    updateShiftCellHeights();
+
+    if (employeeInputs.length) {
+        const storedValues = readEmployeeFilter();
+        if (storedValues) {
             employeeInputs.forEach((input) => {
-                input.checked = employeeSelectAll.checked;
+                input.checked = storedValues.includes(input.value);
             });
-            updateEmployeeSelectAll();
-            applyStoreFilter();
-            persistEmployeeFilter();
-        });
-    }
-    if (employeeFilterInput) {
-        employeeFilterInput.addEventListener("input", applyEmployeeSearch);
-        applyEmployeeSearch();
-    }
-}
-
-const prevBtn = document.getElementById("prevBtn");
-const nextBtn = document.getElementById("nextBtn");
-const todayBtn = document.getElementById("todayBtn");
-const dayLinks = document.querySelectorAll("[data-day-link]");
-
-function toDateParts(dateStr) {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return {y, m, d};
-}
-
-function formatDate(dateObj) {
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-    const d = String(dateObj.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
-if (prevBtn && nextBtn) {
-    prevBtn.addEventListener("click", function() {
-        if (monthInput) {
-            const [y, m] = monthInput.value.split("-").map(Number);
-            const dt = new Date(y, m - 2, 1);
-            monthInput.value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-            monthInput.form.submit();
-            return;
         }
-
-        const current = document.getElementById("dateInput").value;
-        if (!current) return;
-        const {y, m, d} = toDateParts(current);
-        const dt = new Date(y, m - 1, d);
-        if ("{{ view }}" === "week") {
-            dt.setDate(dt.getDate() - 7);
-        } else {
-            dt.setDate(dt.getDate() - 1);
-        }
-        document.getElementById("dateInput").value = formatDate(dt);
-        document.getElementById("dateInput").form.submit();
-    });
-
-    nextBtn.addEventListener("click", function() {
-        if (monthInput) {
-            const [y, m] = monthInput.value.split("-").map(Number);
-            const dt = new Date(y, m, 1);
-            monthInput.value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-            monthInput.form.submit();
-            return;
-        }
-
-        const current = document.getElementById("dateInput").value;
-        if (!current) return;
-        const {y, m, d} = toDateParts(current);
-        const dt = new Date(y, m - 1, d);
-        if ("{{ view }}" === "week") {
-            dt.setDate(dt.getDate() + 7);
-        } else {
-            dt.setDate(dt.getDate() + 1);
-        }
-        document.getElementById("dateInput").value = formatDate(dt);
-        document.getElementById("dateInput").form.submit();
-    });
-}
-
-if (todayBtn) {
-    todayBtn.addEventListener("click", function() {
-        if (monthInput) {
-            const today = "{{ today_str }}";
-            if (today) {
-                const [y, m] = today.split("-").map(Number);
-                monthInput.value = `${y}-${String(m).padStart(2, "0")}`;
-                monthInput.form.submit();
+        const applyEmployeeSearch = () => {
+            const keyword = (employeeFilterInput ? employeeFilterInput.value : "").trim().toLowerCase();
+            employeeInputs.forEach((input) => {
+                const label = input.nextElementSibling;
+                const text = (label ? label.textContent : "").trim().toLowerCase();
+                const match = !keyword || text.includes(keyword);
+                const wrapper = input.closest(".form-check");
+                if (wrapper) {
+                    wrapper.classList.toggle("d-none", !match);
+                }
+            });
+        };
+        const updateEmployeeSelectAll = () => {
+            if (!employeeSelectAll) return;
+            const checkedCount = document.querySelectorAll("input[name=\"employee_filter\"]:checked").length;
+            if (checkedCount === 0) {
+                employeeSelectAll.checked = true;
+                employeeSelectAll.indeterminate = false;
+                return;
             }
-            return;
-        }
-        const dateInput = document.getElementById("dateInput");
-        if (!dateInput) return;
-        dateInput.value = "{{ today_str }}";
-        dateInput.form.submit();
-    });
-}
+            if (checkedCount === employeeInputs.length) {
+                employeeSelectAll.checked = true;
+                employeeSelectAll.indeterminate = false;
+                return;
+            }
+            employeeSelectAll.checked = false;
+            employeeSelectAll.indeterminate = true;
+        };
+        updateEmployeeSelectAll();
+        applyStoreFilter();
+        persistEmployeeFilter();
 
-if (dayLinks.length) {
-    dayLinks.forEach((link) => {
-        link.addEventListener("click", function(event) {
-            event.preventDefault();
-            const date = this.dataset.date;
-            if (!date) return;
-            const url = new URL(window.location.href);
-            url.searchParams.set("view", "day");
-            url.searchParams.set("date", date);
-            url.searchParams.set("day_layout", "{{ day_layout }}");
-            url.searchParams.delete("month");
-            window.location.href = url.toString();
+        employeeInputs.forEach((input) => {
+            input.addEventListener("change", function () {
+                updateEmployeeSelectAll();
+                applyStoreFilter();
+                persistEmployeeFilter();
+            });
         });
-    });
-}
+        if (employeeSelectAll) {
+            employeeSelectAll.addEventListener("change", function () {
+                employeeInputs.forEach((input) => {
+                    input.checked = employeeSelectAll.checked;
+                });
+                updateEmployeeSelectAll();
+                applyStoreFilter();
+                persistEmployeeFilter();
+            });
+        }
+        if (employeeFilterInput) {
+            employeeFilterInput.addEventListener("input", applyEmployeeSearch);
+            applyEmployeeSearch();
+        }
+    }
+
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const todayBtn = document.getElementById("todayBtn");
+    const dayLinks = document.querySelectorAll("[data-day-link]");
+
+    function toDateParts(dateStr) {
+        const [y, m, d] = dateStr.split("-").map(Number);
+        return { y, m, d };
+    }
+
+    function formatDate(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const d = String(dateObj.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
+
+    const buildAndGoToURL = (date, month) => {
+        const url = new URL(window.location);
+        if (date) {
+            url.searchParams.set('date', date);
+            url.searchParams.delete('month');
+        }
+        if (month) {
+            url.searchParams.set('month', month);
+            url.searchParams.delete('date');
+        }
+        // To ensure we always get full data, remove filters before navigating.
+        // The client-side logic will re-apply filters from sessionStorage on load.
+        url.searchParams.delete('store');
+        url.searchParams.delete('employee_filter');
+
+        window.location.href = url.toString();
+    };
+
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener("click", function () {
+            if (monthInput) {
+                const [y, m] = monthInput.value.split("-").map(Number);
+                const dt = new Date(y, m - 2, 1);
+                const newMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+                buildAndGoToURL(null, newMonth);
+                return;
+            }
+
+            const current = document.getElementById("dateInput").value;
+            if (!current) return;
+            const { y, m, d } = toDateParts(current);
+            const dt = new Date(y, m - 1, d);
+            if ("{{ view }}" === "week") {
+                dt.setDate(dt.getDate() - 7);
+            } else {
+                dt.setDate(dt.getDate() - 1);
+            }
+            buildAndGoToURL(formatDate(dt), null);
+        });
+
+        nextBtn.addEventListener("click", function () {
+            if (monthInput) {
+                const [y, m] = monthInput.value.split("-").map(Number);
+                const dt = new Date(y, m, 1);
+                const newMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+                buildAndGoToURL(null, newMonth);
+                return;
+            }
+
+            const current = document.getElementById("dateInput").value;
+            if (!current) return;
+            const { y, m, d } = toDateParts(current);
+            const dt = new Date(y, m - 1, d);
+            if ("{{ view }}" === "week") {
+                dt.setDate(dt.getDate() + 7);
+            } else {
+                dt.setDate(dt.getDate() + 1);
+            }
+            buildAndGoToURL(formatDate(dt), null);
+        });
+    }
+
+    if (todayBtn) {
+        todayBtn.addEventListener("click", function () {
+            const today = "{{ today_str }}";
+            if (!today) return;
+            if (monthInput) {
+                const [y, m] = today.split("-").map(Number);
+                const newMonth = `${y}-${String(m).padStart(2, "0")}`;
+                buildAndGoToURL(null, newMonth);
+                return;
+            }
+            buildAndGoToURL(today, null);
+        });
+    }
+
+    if (dayLinks.length) {
+        dayLinks.forEach((link) => {
+            link.addEventListener("click", function (event) {
+                event.preventDefault();
+                const date = this.dataset.date;
+                if (!date) return;
+                const url = new URL(window.location.href);
+                url.searchParams.set("view", "day");
+                url.searchParams.set("date", date);
+                url.searchParams.set("day_layout", "{{ day_layout }}");
+                url.searchParams.delete("month");
+                window.location.href = url.toString();
+            });
+        });
+    }
 </script>
 {% endblock %}
